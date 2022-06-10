@@ -620,25 +620,10 @@ def easy(ruta, detail):
             count = 0
             trans = trans + t + "\n"
             for  pos, text, accu in result :			
-                # if(count==0):
-                # 	ref_pos = pos
-                # 	ref_text = text
-                # 	# print("#####################")
-                # 	# print(ref_pos)
-                # 	# print("#####################")
-                # 	count+= 1
-                # else:
                 if (c < count): 
-                    # print(f"######### {c} vs {count} ############")
-                    # print(f"-----{ref_text}---vs---{text}-----")
-                    # print(p)
-                    # print(pos)
                     dis = round(min_dis_sq(p, pos),2)
                     aux.append(dis)
-                    # print(dis)
-                    # print("#####################")
-                # else:
-                # 	continue
+
 
                 if ( pos[2][0] > ejex): 
                     ejex = pos[2][0] 
@@ -659,8 +644,6 @@ def easy(ruta, detail):
         ax.set_xlim(0, ejex+50)
         ax.set_ylim(0, ejey+50)
         ax.invert_yaxis()
-        # print(trans)
-        # plt.grid(True)
         # fin = time.time()
         # print("TIME : %d [seg]" % round(fin-inicio, 2)) 
         # print(ref_pos)
