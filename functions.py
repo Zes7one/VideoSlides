@@ -696,37 +696,22 @@ def clustering(array2):
     tot = len(array2)
     aux = [[None]]*tot
     ret_array2 = [[None]]*tot
-    # ret_array2.extend(aux)
-    # (ret_array2[2]).append(2)
-    # print(type((ret_array2)))
-    # print(type((ret_array2[0])))
-    # print(type((ret_array2[0][1])))
-    # print(f"ret_array2 : {ret_array2}")
-    # exit(1)
     flatten = list(num for sublist in array2 for num in sublist)
     maxim = max(flatten) 
     tot_flat = len(flatten) 
     average = sum(flatten)/tot_flat  # TODO: PROBAR MEDIANA en vez de media
-    # print(f"maxim: {maxim}, average: {average}")
     while ( len(list(num for sublist in ret_array2 for num in sublist)) < tot*2):  ## TODO: limita el numero de links validos, quizas usar otro limite
         minim = min(flatten)
-        # print(f"minim: {minim}")
         if (minim > average):
             #Agregar solos los que no alcanzaron en ret_array2 
             print("solitos")
             print(flatten[flatten != maxim+1])
             break
-            # exit(1)
         ind = flatten.index(minim) 
         indx, indy = deep_index(array2, minim)        
-        # ndy = deep_index(array2, minim)        
-        # print(f"ndy: {indx}, {indy}")
+
         flatten[ind] = maxim + 1
         array2[indx][indy] = maxim + 1
-        # indx, indy = get_indexs(tot, ind)
-        # print(type(ret_array2))
-        # exit(1)
-        # (ret_array2[indx]).append(indy)
         ret_array2[indx] = ret_array2[indx] + [indy+indx+1]
 
 
