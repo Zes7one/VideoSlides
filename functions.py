@@ -27,6 +27,7 @@ import easyocr
 from matplotlib import pyplot as plt
 import matplotlib.patches as patches
 from math import sqrt 
+from math import floor
 
 ###################################### FUNCIONES EXTRA ######################################
 def addJ (name):
@@ -649,7 +650,122 @@ def easy(ruta, detail):
         # print(ref_pos)
         # print(len(ref_pos))
         clusters = clustering(ref_pos)
+        clustr = str(clusters)
+        print(clusters)
+        # exit(1)
+
+        print("#############################################")
+        # ORDEN DE LOS PUNTOS SEGUN POSISICION HORIZONTAL 
+        # clus 
+        orden_l = sorted([item for sublist in clusters for item in sublist])
+        pos_l = [p[0][0] for (p, t, a) in result]
+        zip_list = list(zip(pos_l, orden_l))
+        zip_sort = sorted(zip_list, key=lambda x: x[0])
+        order_X = [i[1] for i in zip_sort ]
+        # print(clusters)
+        # print(orden_l)
+        # print(pos_l)
+        print(zip_list)
+        print(zip_sort)
+        # print(order_X)
+        # exit(1)
+        # aux = [k[0] for kinde, k in enumerate(result) if kinde in i] 
+        order_Y = []
+        for index, i in enumerate(clusters):
+            if (len(i)> 1):
+                clus = []
+                aux = [k[0] for kinde, k in enumerate(result) if kinde in i]  # lista de pos in cluster i
+                # print("aux")
+                # print(aux) 
+                # exit(1)
+                lis = [k[0] for k in aux] # lista de pos1 del cluster i
+                lis3 =  [k[3] for k in aux] # lista de pos3 del cluster i
+                # print(lis)
+                # list(num for sublist in array2 for num in sublist)
+                list_L = [k[0] for k in lis] # lista de pos1.x
+                list_H = [k[1] for k in lis] # lista de pos1.y
+                list_h = [k[1] for k in lis3] # lista de pos3.y
+                # list_H[2] = 76
+                # print(list_H)
+                # print(list_h)
+                # print(list_L)
+                # higher = min(list_H) # valor mas alto 
+                # high = list_h[list_H.index(higher)] # valor mas alto 
+                # list_H[list_H.index(higher)] = float('inf')
+                # print(list_H)
+                # exit(1)
+
+                lefter = min(list_L) # valor mas izquierdo
+                # print(higher, high)
+                # print(lefter)
+                # rango =  (high- higher)/2 # valor medio de la altura # ------------------------- ME FALTA TOMAR EL PUNTO 1 Y EL 3 O 4 PARA MEDIR LA ALTURA  (QUIZAS TENGA PROBLEMA CON LOS RECTANGULOS DIAGONALES)
+                # print(rango)
+                # print(float('inf') )
+                # print("while")
+                
+                order = []
+                while(len(i) > len([item for sublist in clus for item in sublist])):
+                    # order.append(i[list_L.index(lefter)])
+                    # list_L[list_L.index(lefter)] = float('inf')
+                    # lefter = min(list_L) 
+                    higher = min(list_H) # valor mas alto 
+                    pos_H = list_H.index(higher)
+                    high = list_h[pos_H] # valor mas alto 
+                    list_H[pos_H] = float('inf')
+                    rango =  (high- higher)/4
+                    levels = []
+                    # print("uno")
+                    levels.append(i[pos_H])
+                    for jndex, j in enumerate(i): # set(range(tot)) - set([i])
+                        # print(levels)
+                        if(higher+rango > list_H[jndex] ):
+                            # print("dos")
+                            levels.append(i[jndex])
+                            list_H[jndex] = float('inf')
+                        # levels.append()
+                        # p, t, a = result[j]
+                        # p = list(map((lambda x: [round(x[0], 2), round(x[1], 2)] ), p ))
+                        # print(j)
+
+                    clus.append(levels)
+            else: # CASO EN QUE len(i) == 1
+                clus = i
+                # print("tres")
+                    # exit(1)
+            # print(clus)
+            order_Y.append(clus)
+        print(order_Y)
+        print("### for ###")
+        print("orderX",order_X)
+        order = order_Y
+        for index, i in enumerate(order_Y):
+            if(len(i) > 1):
+                for jndex, j in enumerate(i):
+                    if(len(j) > 1):
+                        x_ord = [x for x in order_X if x in j]
+                        order[index][jndex] = x_ord
+                        print(j)
+                        print(x_ord)
+        print("### for ###")
+        print(order)
+        print("#############################################")
+        
+        filename = "order.json"
+        # order_trans = str(order).replace(i,result[i])
+        order_trans = str(order) 
+        # TODO: RECORRER order, Y SOBRE ESE REEMPLAZAR CON t 
+        # TODO: ARREGLAR FOTO WSP
+        # TODO: REVISAR QUE TAN UTIL SERIA EL RTF
+        # TODO: AVANZAR DOCUMENTO, ORDENAR CODIGO, 
+        for index, (p, t, a) in enumerate(result):
+            p = list(map((lambda x: [round(x[0], 2), round(x[1], 2)] ), p ))
+            order_trans = order_trans.replace(str(index), t)
+            # print(p, t)
+        write_json(order_trans, filename)
         plt.show()
+        exit(1)
+        # print(clusters)
+        # print(clustr)
         # exit(1)
         return trans
     else:
@@ -683,9 +799,12 @@ def clustering(array2):
     maxim = max(flatten) 
     tot_flat = len(flatten) 
     average = sum(flatten)/tot_flat  # TODO: PROBAR MEDIANA en vez de media
+    fla_sort = sorted(flatten)
+    media = fla_sort[floor(tot_flat/2)]
+    metrica = media# average o media
     while ( len(list(num for sublist in ret_array2 for num in sublist)) < tot*2):  ## TODO: limita el numero de links validos, quizas usar otro limite
         minim = min(flatten)
-        if (minim > average):
+        if (minim > metrica):
             #Agregar solos los que no alcanzaron en ret_array2 
             print("solitos")
             print(flatten[flatten != maxim+1])
@@ -713,12 +832,13 @@ def clustering(array2):
                 ret_array2[j] = []
 
 
-    print("termino")
     ret_array2 = [i for i in ret_array2 if len(i)>0]
-    print(f"ret_array2 : {ret_array2} size : {len(ret_array2)}")
+    # print(f"ret_array2 : {ret_array2} size : {len(ret_array2)}")
     return(ret_array2)
             
-
+def write_json(data, filename= "adw.json"):
+    with  open(filename, "w") as f:
+        json.dump(data, f, indent=4)
 
 def tese(ruta, debug = False):
     inicio = time.time()
@@ -746,6 +866,10 @@ def get_transcription(f_ruta, data = [], ocr = 1): # 1 = easyOCR y 2 = teseract
     # iteracion sobre Frames contiguos, comparando por cantidad de pixeles diferntes y por metric SSIM, para eliminar los con info repetida
     f_ruta = f_ruta+"/"
     for a, frame in enumerate(Frames):
+        # if(a != 5): # ELIMINAR
+        #     # print(data, type(data))
+        #     data 
+        #     continue
         i = int(frame.split(".")[0]) 
         if (len(data) != 0 and a in data):
             # if(a != 0):
@@ -850,14 +974,14 @@ lista_rutas = [RC2, RC3, RC4, RC5, RC6, RC7, RC8, RC9]
 # rutaFrames, nombreVideo = "./video2/F_Unalivioaunclickdedistancia_360p", "Unalivioaunclickdedistancia_360p"
 # rutaFrames, nombreVideo = "./video2/F_VESKI_360p", "VESKI_360p"
 
-RC2, NV2 = "./CLEAN/clean_ClosetCleanup_360pwebm" 						, "clean_ClosetCleanup_360pwebm"
-RC3, NV3 = "./CLEAN/clean_EstrategiaDigitalMBAUCexamen_360p"			, "clean_EstrategiaDigitalMBAUCexamen_360p"
-RC4, NV4 = "./CLEAN/clean_MBAUCQ22021EstrategiaDigitalGrowInvest_360p"	, "clean_MBAUCQ22021EstrategiaDigitalGrowInvest_360p"
-RC5, NV5 = "./CLEAN/clean_PitchLifetech_360p"							, "clean_PitchLifetech_360p"
-RC6, NV6 = "./CLEAN/clean_PLATAFOMRADESEGUROSESTDIGITAL_360p"			, "clean_PLATAFOMRADESEGUROSESTDIGITAL_360p"
-RC7, NV7 = "./CLEAN/clean_PresentacionTRADENOW_360pwebm"				, "clean_PresentacionTRADENOW_360pwebm"
-RC8, NV8 = "./CLEAN/clean_Unalivioaunclickdedistancia_360p"				, "clean_Unalivioaunclickdedistancia_360p"
-RC9, NV9 = "./CLEAN/clean_VESKI_360p"									, "clean_VESKI_360p"
+RC2, NV2 = "../CLEAN/clean_ClosetCleanup_360pwebm" 						, "clean_ClosetCleanup_360pwebm"
+RC3, NV3 = "../CLEAN/clean_EstrategiaDigitalMBAUCexamen_360p"			, "clean_EstrategiaDigitalMBAUCexamen_360p"
+RC4, NV4 = "../CLEAN/clean_MBAUCQ22021EstrategiaDigitalGrowInvest_360p"	, "clean_MBAUCQ22021EstrategiaDigitalGrowInvest_360p"
+RC5, NV5 = "../CLEAN/clean_PitchLifetech_360p"							, "clean_PitchLifetech_360p"
+RC6, NV6 = "../CLEAN/clean_PLATAFOMRADESEGUROSESTDIGITAL_360p"			, "clean_PLATAFOMRADESEGUROSESTDIGITAL_360p"
+RC7, NV7 = "../CLEAN/clean_PresentacionTRADENOW_360pwebm"				, "clean_PresentacionTRADENOW_360pwebm"
+RC8, NV8 = "../CLEAN/clean_Unalivioaunclickdedistancia_360p"				, "clean_Unalivioaunclickdedistancia_360p"
+RC9, NV9 = "../CLEAN/clean_VESKI_360p"									, "clean_VESKI_360p"
 
 lista_rutas_clean = [RC2, RC3, RC4, RC5, RC6, RC7, RC8, RC9]
 lista_nombreVideo = [NV2, NV3, NV4, NV5, NV6, NV7, NV8, NV9]
@@ -869,15 +993,17 @@ lista_nombreVideo = [NV2, NV3, NV4, NV5, NV6, NV7, NV8, NV9]
 
 
 
-rutaFrames, nombreVideo = "./CLEAN/clean_ClosetCleanup_360pwebm", "clean_ClosetCleanup_360pwebm"
+rutaFrames, nombreVideo = "../CLEAN/clean_ClosetCleanup_360pwebm", "clean_ClosetCleanup_360pwebm"
 # rutaFrames, nombreVideo = "./CLEAN/clean_EstrategiaDigitalMBAUCexamen_360p", "clean_EstrategiaDigitalMBAUCexamen_360p"
 # rutaFrames, nombreVideo = "./CLEAN/clean_MBAUCQ22021EstrategiaDigitalGrowInvest_360p", "clean_MBAUCQ22021EstrategiaDigitalGrowInvest_360p"
 
 sets = get_setslides(rutaFrames)
 # print(sets)
 # print()
+print(" #################### sets #################### ")
 print(sets)
 seleccionados =  last_ones(sets)
+print(" #################### seleccionados #################### ")
 print(seleccionados)
 # print(seleccionados)
 get_transcription(rutaFrames, data = seleccionados, ocr = 1)
