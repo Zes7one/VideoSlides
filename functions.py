@@ -708,7 +708,7 @@ def last_ones(array):
         retorno.append(array[i][-1])
     return retorno
 
-def easy(ruta, detail, debugg = True): #PEND
+def easy(ruta, detail, debugg = False): #PEND
     """ Funcion que usando mush() crea una imagen que compila dos frames contiguos
     -------------------------------------------------------
     Input:
@@ -721,6 +721,10 @@ def easy(ruta, detail, debugg = True): #PEND
     reader = easyocr.Reader(['en'], gpu=False) # this needs to run only once to load the model into memory
     result = reader.readtext(ruta, detail = detail)
     if (detail == 1):
+        trans = ""
+        ref_pos = []
+        trans_l = []
+        c = 0
         if(debugg):
             im = Image.open(ruta)
             # Create figure and axes
@@ -730,26 +734,23 @@ def easy(ruta, detail, debugg = True): #PEND
             ax.imshow(im)
             ejex = 0
             ejey = 0
-            trans = ""
-            ref_pos = []
-            ref_text = ""
-            c = 0
-            for p, t, a in result :
-                aux = []
-                count = 0
-                trans = trans + t + "\n"
-                for  pos, text, accu in result :			
-                    if (c < count): 
-                        dis = round(min_dis_sq(p, pos),2)
-                        aux.append(dis)
-
-
+        for p, t, a in result :
+            aux = []
+            count = 0
+            trans = trans + t + "\n"
+            trans_l.append(t)
+            for  pos, text, accu in result :			
+                if (c < count): 
+                    dis = round(min_dis_sq(p, pos),2)
+                    aux.append(dis)
+                # -------------- Se calculan las dimensiones y se crea el poligono que engloba el texto encontrado --------------
+                if(debugg):
                     if ( pos[2][0] > ejex): 
                         ejex = pos[2][0] 
                     if ( pos[2][1] > ejey): 
                         ejey = pos[2][1] 
-                    ancho = pos[1][0] - pos[0][0]
-                    alto = pos[2][1] - pos[1][1]
+                    # ancho = pos[1][0] - pos[0][0]
+                    # alto = pos[2][1] - pos[1][1]
                     x, y =  pos[0]
                     # Create a Rectangle patch
                     # rect = patches.Rectangle((x, y), ancho, alto, linewidth=1, edgecolor='r', facecolor='none')
@@ -757,9 +758,12 @@ def easy(ruta, detail, debugg = True): #PEND
                     plt.text(x, y,str(count))
                     # Add the patch to the Axes
                     ax.add_patch(rect)
-                    count+= 1
-                c += 1
-                ref_pos.append(aux)
+                # ---------------------------------------------------------------------------------------------------------------
+                count+= 1
+            c += 1
+            ref_pos.append(aux)
+
+        if(debugg):
             ax.set_xlim(0, ejex+50)
             ax.set_ylim(0, ejey+50)
             ax.invert_yaxis()
@@ -834,17 +838,22 @@ def easy(ruta, detail, debugg = True): #PEND
         # TODO: REVISAR QUE TAN UTIL SERIA EL RTF
         # TODO: AVANZAR DOCUMENTO, ORDENAR CODIGO
 
-        trans 
         for index, i in enumerate(order):
             if(len(i) > 1):
                 for jndex, j in enumerate(i):
                     if(len(j) > 1):
                         for kndex, k in enumerate(j):
-                            print(k)
+                            order[index][jndex][kndex] = trans_l[k]
                     else:
-                        print(j)
+                        order[index][jndex][0] = trans_l[j[0]]
             else:
-                print(i)
+                order[index][0] = trans_l[i[0]]
+
+        write_json(order, filename)
+        print("#############################################")
+        if(debugg):
+            plt.show()
+        
         exit(1)
 
         
@@ -855,8 +864,6 @@ def easy(ruta, detail, debugg = True): #PEND
         write_json(order_trans, filename)
         # -------------------------------------------------------------------------------------------------------------
 
-        if(debugg):
-            plt.show()
         exit(1)
         return trans
     else:
