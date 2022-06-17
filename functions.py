@@ -47,12 +47,15 @@ def ls2(ruta = Path.cwd()):
 ###################################### FUNCIONES PARA PEGAR IMAGENES SIMILARES (la use para los modelos) ######################################
 def mush(array, orute ,drute, name): 
     '''
-    toma un conjunto de imagenes (array) y los une en una sola imagen de nombre <name>
+    Toma un conjunto de imagenes (array) y los une en una sola imagen de nombre <name>
     -------------------------------------------------------
-    array: lista con nombres de las fotos, 
-    orute: ruta origen frames
-    drute: ruta destino frames
-    name: nombre final imagen
+    Input:
+        array(list): lista con nombres de las fotos, 
+        orute(str): ruta origen frames
+        drute(str): ruta destino frames
+        name(str): nombre final imagen
+    Output:
+        1 : al finalizar
     '''
     images = [Image.open(orute+"/"+str(x)) for x in array]
     widths, heights = zip(*(i.size for i in images))
@@ -70,6 +73,14 @@ def mush(array, orute ,drute, name):
     return 1
 
 def bloques(f_ruta, nombre ):
+    """ Funcion que usando mush() crea una imagen que compila varios frames similares
+    -------------------------------------------------------
+    Input:
+        f_ruta (str): ruta frames
+        nombre (str): nombre de la extension de la carpeta de bloques
+    Output:
+        "OK" (str)
+    """
     Frames = ls(ruta = f_ruta)
     Frames.sort()
     Frames = list(map(addJ ,Frames))
@@ -135,6 +146,14 @@ def bloques(f_ruta, nombre ):
     return "OK"
 
 def pares(f_ruta, nombre):
+    """ Funcion que usando mush() crea una imagen que compila dos frames contiguos
+    -------------------------------------------------------
+    Input:
+        f_ruta (str): ruta frames
+        nombre (str): nombre de la extension de la carpeta de bloques
+    Output:
+        "OK" (str)
+    """
     Frames = ls(ruta = f_ruta)
     Frames.sort()
     Frames = list(map(addJ ,Frames))
@@ -173,9 +192,16 @@ def pares(f_ruta, nombre):
 
 
 ###################################### FUNCIONES PRINCIPALES ######################################
-def download_video(url):
-    '''
-    CAMBIOS EN CIPHER.PY
+def download_video(url): 
+    """ Descarga un video de youtube 
+    -------------------------------------------------------
+    Input:
+        url (str): link del video de youtube
+    Output:
+        No posee
+    """
+    ''' 
+    CAMBIOS QUE REQUIERE EN CIPHER.PY (DOCUMENTOS DE LA LIBRERIA)
     lineas 272 y 273
     r'a\.[a-zA-Z]\s*&&\s*\([a-z]\s*=\s*a\.get\("n"\)\)\s*&&\s*'
     r'\([a-z]\s*=\s*([a-zA-Z0-9$]{2,3})(\[\d+\])?\([a-z]\)'
@@ -190,11 +216,16 @@ def download_video(url):
 
 def getFrames(ruta, saltos, escala = 100 ,fname = "Default"):
     '''
-    Crea una carpeta con el nombre del video e inserta los frames en esta con nombres 0,1,2,3,...
+    Crea una carpeta con el nombre del video e inserta los frames en esta con nombres 0,1,2,3,...N-1
+    con N el numero total de frames dividido en la cantidad de saltos
     -------------------------------------------------------
-    ruta: ruta origen del video
-    saltos: saltos de  fps veces
-    escala: tamano final de la imagen (en porcentaje)
+    Input:
+        ruta: ruta origen del video
+        saltos: saltos de  fps veces
+        escala: tamano final de la imagen (en porcentaje)
+    Output:   
+        rutaFrames (str): ruta local donde guardan los frames extraidos
+        VideoName (str): Nombre abreviado del video procesado
     '''
 
     inicio = time.time()
@@ -245,7 +276,16 @@ def getFrames(ruta, saltos, escala = 100 ,fname = "Default"):
     print("----------------------------------------")
     return rutaFrames, VideoName
 
-def isame(rute1, rute2, dbugg = False):
+def isame(rute1, rute2, dbugg = False):  
+    """ Compara dos frames usando el porcentaje de pixeles que difieren como tambien el valor para SSIM entre ellos
+    -------------------------------------------------------
+    Input:
+        rute1 (str): ruta de primer frame
+        rute2 (str): ruta de segundo frame
+        dbugg (boolean): True en caso de querer visualizar los frames
+    Output:
+        state (boolean): indicador que indica si son considerados suficientemente similares 
+    """
     # COlOR
     # im1 = cv2.imread(rute1)
     # im2 = cv2.imread(rute2)
@@ -287,29 +327,18 @@ def isame(rute1, rute2, dbugg = False):
 
     return state
 
-# f_ruta = "C:/Users/FrancoPalma/Desktop/PROTOTIPO/video2/F_PitchLifetech_360p/"
-# frame = ".jpg"
-
-# Frames = ls(ruta = f_ruta)
-# Frames.sort()
-# Frames = list(map(addJ ,Frames))
-# for i, names in enumerate(Frames):
-# 	if(i > 9 and i < 14):
-# 		print(i, names)
-# 		print(isame(f_ruta+Frames[i-1], f_ruta+names))
-# 		# exit(1)
-
 ###################################### FUNCIONES EXTRA 2 ######################################
-def mar(Oruta, Druta): # Move and Rename files 
-    '''
+def mar(Oruta, Druta): 
+    ''' Funcion que mueve y renombra archivos
+        para mover archivos desde carpetas pares_<name> -> Data/1, Data/2, Data/3, Data/4
+    -------------------------------------------------------
+    Input:
         Oruta : ruta origen, donde estas separas en distintas carpetas
-        Druta: ruta destino, donde se mergen todo
-        Funcion para mover archivos deesde carpetas pares_<name> -> Data/1, Data/2, Data/3, Data/4
+        Druta : ruta destino, donde se mergen todo
+    Output:
+        No aplica
     '''
-    c1 = 0
-    c2 = 0
-    c3 = 0
-    c4 = 0
+    c1 = c2 = c3 = c4 = 0
     for file in os.listdir(Oruta):	# recorriendo pares
         if (os.path.isdir(Oruta+"/"+file) ): 
             for file2 in os.listdir(Oruta+"/"+file):	# recorriendo 1, 2, 3, 4
@@ -347,11 +376,15 @@ def mar(Oruta, Druta): # Move and Rename files
                     # exit(1)
                         # os.rename(Oruta+"/"+file+"/"+file2+"/"+'aux.jpg', Nname)
 
-def mar2(Oruta, Druta): # Move and Rename files 
-    '''
+def mar2(Oruta, Druta): 
+    '''Move and Rename files 
+    Funcion que organiza imagenes en dos carpetas ("igual" y "diferente") (se uso para ordenar la data de aprendizaje a un modelo de ML)
+    -------------------------------------------------------
+    Input:
         Oruta : ruta origen, donde estas separas en distintas carpetas
         Druta: ruta destino, donde se mergen todo
-        Funcion para mover archivos deesde carpetas pares_<name> -> Data/1, Data/2, Data/3, Data/4
+    Output:
+        No aplica
     '''
     c1 = 0
     c2 = 0
@@ -374,7 +407,15 @@ def mar2(Oruta, Druta): # Move and Rename files
 
 ###################################### FUNCIONES EXTRA 2 ######################################
 
-def clean(f_ruta, nombre):
+def clean(f_ruta, nombre): 
+    """ Funcion que usando isame() mueve frames a una nueva carpeta filtrando las imagenes que son consideradas iguales
+    -------------------------------------------------------
+    Input:
+        f_ruta (str): ruta frames
+        nombre (str): nombre de la extension de la carpeta de bloques
+    Output:
+        "OK" (str)
+    """
     Frames = ls(ruta = f_ruta)
     Frames.sort()
     Frames = list(map(addJ ,Frames))
@@ -399,15 +440,19 @@ def clean(f_ruta, nombre):
         anterior = i
     return "OK"
 
-def clean_a(f_ruta, nombre): # retorna array con posiciones de los frames filtrados
+def clean_a(f_ruta): 
+    """ Funcion que retorna array con posiciones de los frames filtrados (no mueve los frames de la carpeta actual)
+    -------------------------------------------------------
+    Input:
+        f_ruta (str): ruta frames
+    Output:
+        pos (list): array con posiciones de los frames "unicos"
+        full (str): array con posiciones sin filtrados ("con todos los frames")
+    """
     Frames = ls(ruta = f_ruta)
     Frames.sort()
     Frames = list(map(addJ ,Frames))
-    # prefijo = "clean" 
-    # nombre = "./%s_%s" % (prefijo, nombre)
 
-    # if (not os.path.isdir(nombre)):
-    # 	os.mkdir(nombre)
     pos = []
     full = []
     # iteracion sobre Frames contiguos, comparando por cantidad de pixeles diferntes y por metric SSIM, para eliminar los con info repetida
@@ -422,12 +467,20 @@ def clean_a(f_ruta, nombre): # retorna array con posiciones de los frames filtra
             if(not isame(rute1, rute2)):
                 print("Frame: %d" % j)
                 pos.append(a-1)
-                # shutil.copy(rute1, nombre)
                 j += 1
         anterior = i
     return pos, full
 
-def getqua(rute1, rute2, me = 1):
+def getqua(rute1, rute2, me = 1): 
+    """ Funcion que compara dos frames con la metrica que indica el parametro "me"
+    -------------------------------------------------------
+    Input:
+        f_ruta (str): ruta frames
+        nombre (str): nombre de la extension de la carpeta de bloques
+        me (int): metrica a usar para comparar los frames
+    Output:
+        Valor (float): valor de evaluacion obtenido con metrica elegida
+    """
     # COlOR
     # im1 = cv2.imread(rute1)
     # im2 = cv2.imread(rute2)
@@ -450,7 +503,14 @@ def getqua(rute1, rute2, me = 1):
         dif = np.sum(im1 != im2)
         return dif/pixT
 
-def getdata(f_ruta):
+def getdata(f_ruta): 
+    """ Funcion que usando getqua() en frames ordenados entrega un array con los valores evaluados de frames contiguos
+    -------------------------------------------------------
+    Input:
+        f_ruta (str): ruta frames
+    Output:
+        data (list): array ordenado con numeros enteros obtenidos evaluando frames contiguos
+    """
     Frames = ls(ruta = f_ruta)
     Frames.sort()
     Frames = list(map(addJ ,Frames))
@@ -476,7 +536,15 @@ def getdata(f_ruta):
         anterior = i
     return data
 
-def getdata_selec(f_ruta, pos_array):
+def getdata_selec(f_ruta, pos_array): 
+    """ Funcion identica a getdata con la expecion que solo compara frames indicados segun su posicion
+    -------------------------------------------------------
+    Input:
+        f_ruta (str): ruta frames
+        pos_array (list): array con posiciones de los frames que se desean comparar 
+    Output:
+        data (list): array ordenado con valores obtenidos evaluando frames contiguos (que existen dentro de pos_array)
+    """
     Frames = ls(ruta = f_ruta)
     Frames.sort()
     Frames = list(map(addJ ,Frames))
@@ -506,7 +574,15 @@ def getdata_selec(f_ruta, pos_array):
         anterior = i
     return data
 
-def ploteo(f_ruta, nombre, data = []):
+def ploteo(f_ruta, nombre, data = []): 
+    """ Funcion que grafica data 1D, y en caso de no entregarla la obtiene usando getdata(f_ruta)
+    -------------------------------------------------------
+    Input:
+        f_ruta (str): ruta frames
+        nombre (str): nombre de la data (video)
+    Output:
+        "OK" (str)
+    """
 
     if (len(data) == 0):
         data = getdata(f_ruta)
@@ -523,6 +599,14 @@ def ploteo(f_ruta, nombre, data = []):
     return "OK"
 
 def localmin(data):
+    """ Funcion que obtiene los minimos locales de la data entregada
+    -------------------------------------------------------
+    Input:
+        data (list): array ordenado con numeros enteros 1D
+    Output:
+        counts[1] (int): numero de minimos locales encontrados
+        pos (list): posiciones correspondiente a los minimos locales dentro del array data
+    """
     a_min =  np.r_[True, data[1:] < data[:-1]] & np.r_[data[:-1] < data[1:], True]
     a_max =  np.r_[True, data[1:] > data[:-1]] & np.r_[data[:-1] > data[1:], True]
     unique, counts = np.unique(a_min, return_counts=True)
@@ -535,7 +619,15 @@ def localmin(data):
     # exit(1)
     return counts[1], pos
 
-def classic(data, nombre):
+def classic(data, nombre): 
+    """ Grafica data 1D, indicando el nombre, minimo y maximo de la data
+    -------------------------------------------------------
+    Input:
+        data (list):  array ordenado con numeros enteros 1D
+        nombre (str): nombre de la data (video)
+    Output:
+        no aplica
+    """
     minim = np.amin(data)
     maxim = np.amax(data)
     # print(data)
@@ -547,7 +639,15 @@ def classic(data, nombre):
     plt.title("%s (%f,%f)" % (nombre, minim, maxim))
     plt.show()
 
-def histograma(data, nombre):
+def histograma(data, nombre): 
+    """ Grafica data 1D como un histograma, indicando el nombre, minimo y maximo de la data
+    -------------------------------------------------------
+    Input:
+        data (list):  array ordenado con numeros enteros 1D
+        nombre (str): nombre de la data (video)
+    Output:
+        no aplica
+    """
     plt.title(nombre)
     plt.hist(data, bins=60, alpha=1, edgecolor = 'black',  linewidth=1)
     plt.grid(True)
@@ -555,11 +655,13 @@ def histograma(data, nombre):
     plt.clf()
                 
 def get_setslides(f_ruta, data = []):
-    """
-    Funcion que separa las diapositivas en listas de frames dentro de un diccionario
-    data = array con las posiciones de los frames que se filtraron ()
-    path = ruta desde el archivo 
-    Retorna diccionario
+    """ Funcion que separa las diapositivas en listas de frames dentro de un diccionario
+    -------------------------------------------------------
+    Input:
+        f_ruta (str): ruta desde el archivo 
+        data (list): array con posiciones de frames que se filtraron ()
+    Output:
+        sets (dict)
     """ 
     # adiv = array con las posiciones donde se divide las diapositivas
     # la data es opcional, ya que se puede sacar directamente del path
@@ -592,132 +694,110 @@ def get_setslides(f_ruta, data = []):
     # print(sets)
     return(sets)
 
-def last_ones(array):
+def last_ones(array): 
+    """ Obtiene los ultimos elementos de las listas dentro de array
+    -------------------------------------------------------
+    Input:
+        array (list): array de arrays
+    Output:
+        retorno (array) 
+    """
     largo = len(array)
     retorno =  []
     for i in range(largo):
         retorno.append(array[i][-1])
     return retorno
 
-def easy(ruta, detail):
+def easy(ruta, detail, debugg = True): #PEND
+    """ Funcion que usando mush() crea una imagen que compila dos frames contiguos
+    -------------------------------------------------------
+    Input:
+        f_ruta (str): ruta frames
+        nombre (str): nombre de la extension de la carpeta de bloques
+    Output:
+        "OK" (str)
+    """
     
     reader = easyocr.Reader(['en'], gpu=False) # this needs to run only once to load the model into memory
     result = reader.readtext(ruta, detail = detail)
     if (detail == 1):
-        im = Image.open(ruta)
-        # Create figure and axes
-        fig_dims = (5, 5)
-        fig, ax = plt.subplots(figsize=fig_dims)
-        # Display the image
-        ax.imshow(im)
-        ejex = 0
-        ejey = 0
-        trans = ""
-        ref_pos = []
-        ref_text = ""
-        c = 0
-        for p, t, a in result :
-            aux = []
-            count = 0
-            trans = trans + t + "\n"
-            for  pos, text, accu in result :			
-                if (c < count): 
-                    dis = round(min_dis_sq(p, pos),2)
-                    aux.append(dis)
+        if(debugg):
+            im = Image.open(ruta)
+            # Create figure and axes
+            fig_dims = (5, 5)
+            fig, ax = plt.subplots(figsize=fig_dims)
+            # Display the image
+            ax.imshow(im)
+            ejex = 0
+            ejey = 0
+            trans = ""
+            ref_pos = []
+            ref_text = ""
+            c = 0
+            for p, t, a in result :
+                aux = []
+                count = 0
+                trans = trans + t + "\n"
+                for  pos, text, accu in result :			
+                    if (c < count): 
+                        dis = round(min_dis_sq(p, pos),2)
+                        aux.append(dis)
 
 
-                if ( pos[2][0] > ejex): 
-                    ejex = pos[2][0] 
-                if ( pos[2][1] > ejey): 
-                    ejey = pos[2][1] 
-                ancho = pos[1][0] - pos[0][0]
-                alto = pos[2][1] - pos[1][1]
-                x, y =  pos[0]
-                # Create a Rectangle patch
-                # rect = patches.Rectangle((x, y), ancho, alto, linewidth=1, edgecolor='r', facecolor='none')
-                rect = patches.Polygon(pos, linewidth=1, edgecolor='r', facecolor='none')
-                plt.text(x, y,str(count))
-                # Add the patch to the Axes
-                ax.add_patch(rect)
-                count+= 1
-            c += 1
-            ref_pos.append(aux)
-        ax.set_xlim(0, ejex+50)
-        ax.set_ylim(0, ejey+50)
-        ax.invert_yaxis()
+                    if ( pos[2][0] > ejex): 
+                        ejex = pos[2][0] 
+                    if ( pos[2][1] > ejey): 
+                        ejey = pos[2][1] 
+                    ancho = pos[1][0] - pos[0][0]
+                    alto = pos[2][1] - pos[1][1]
+                    x, y =  pos[0]
+                    # Create a Rectangle patch
+                    # rect = patches.Rectangle((x, y), ancho, alto, linewidth=1, edgecolor='r', facecolor='none')
+                    rect = patches.Polygon(pos, linewidth=1, edgecolor='r', facecolor='none')
+                    plt.text(x, y,str(count))
+                    # Add the patch to the Axes
+                    ax.add_patch(rect)
+                    count+= 1
+                c += 1
+                ref_pos.append(aux)
+            ax.set_xlim(0, ejex+50)
+            ax.set_ylim(0, ejey+50)
+            ax.invert_yaxis()
         # fin = time.time()
         # print("TIME : %d [seg]" % round(fin-inicio, 2)) 
         # print(ref_pos)
         # print(len(ref_pos))
         clusters = clustering(ref_pos)
-        clustr = str(clusters)
-        print(clusters)
-        # exit(1)
-
         print("#############################################")
-        # ORDEN DE LOS PUNTOS SEGUN POSISICION HORIZONTAL 
-        # clus 
+        # -------------- En order_X se dejan los indices de las textos ordenados segun su posicion en el eje x --------------
         orden_l = sorted([item for sublist in clusters for item in sublist])
         pos_l = [p[0][0] for (p, t, a) in result]
         zip_list = list(zip(pos_l, orden_l))
         zip_sort = sorted(zip_list, key=lambda x: x[0])
         order_X = [i[1] for i in zip_sort ]
-        # print(clusters)
-        # print(orden_l)
-        # print(pos_l)
-        print(zip_list)
-        print(zip_sort)
-        # print(order_X)
-        # exit(1)
-        # aux = [k[0] for kinde, k in enumerate(result) if kinde in i] 
+        # -------------------------------------------------------------------------------------------------------------------
+
+        # -------------- En order_Y se dejan los indices segun eje y --------------
         order_Y = []
         for index, i in enumerate(clusters):
             if (len(i)> 1):
                 clus = []
                 aux = [k[0] for kinde, k in enumerate(result) if kinde in i]  # lista de pos in cluster i
-                # print("aux")
-                # print(aux) 
-                # exit(1)
                 lis = [k[0] for k in aux] # lista de pos1 del cluster i
                 lis3 =  [k[3] for k in aux] # lista de pos3 del cluster i
-                # print(lis)
-                # list(num for sublist in array2 for num in sublist)
-                list_L = [k[0] for k in lis] # lista de pos1.x
                 list_H = [k[1] for k in lis] # lista de pos1.y
                 list_h = [k[1] for k in lis3] # lista de pos3.y
-                # list_H[2] = 76
-                # print(list_H)
-                # print(list_h)
-                # print(list_L)
-                # higher = min(list_H) # valor mas alto 
-                # high = list_h[list_H.index(higher)] # valor mas alto 
-                # list_H[list_H.index(higher)] = float('inf')
-                # print(list_H)
-                # exit(1)
-
-                lefter = min(list_L) # valor mas izquierdo
-                # print(higher, high)
-                # print(lefter)
-                # rango =  (high- higher)/2 # valor medio de la altura # ------------------------- ME FALTA TOMAR EL PUNTO 1 Y EL 3 O 4 PARA MEDIR LA ALTURA  (QUIZAS TENGA PROBLEMA CON LOS RECTANGULOS DIAGONALES)
-                # print(rango)
-                # print(float('inf') )
-                # print("while")
-                
-                order = []
                 while(len(i) > len([item for sublist in clus for item in sublist])):
-                    # order.append(i[list_L.index(lefter)])
-                    # list_L[list_L.index(lefter)] = float('inf')
-                    # lefter = min(list_L) 
                     higher = min(list_H) # valor mas alto 
                     pos_H = list_H.index(higher)
                     high = list_h[pos_H] # valor mas alto 
                     list_H[pos_H] = float('inf')
+                    # ----------RANGO--------------- ME FALTA TOMAR EL PUNTO 1 Y EL 3 O 4 PARA MEDIR LA ALTURA  (QUIZAS TENGA PROBLEMA CON LOS RECTANGULOS DIAGONALES)
                     rango =  (high- higher)/4
                     levels = []
                     # print("uno")
                     levels.append(i[pos_H])
                     for jndex, j in enumerate(i): # set(range(tot)) - set([i])
-                        # print(levels)
                         if(higher+rango > list_H[jndex] ):
                             # print("dos")
                             levels.append(i[jndex])
@@ -731,12 +811,11 @@ def easy(ruta, detail):
             else: # CASO EN QUE len(i) == 1
                 clus = i
                 # print("tres")
-                    # exit(1)
-            # print(clus)
             order_Y.append(clus)
-        print(order_Y)
-        print("### for ###")
-        print("orderX",order_X)
+        # -------------------------------------------------------------------------
+
+        # -------------- En order se dejan los indices segun eje "y" y usando order_X se ordenan los arrays internos --------------
+        order = []
         order = order_Y
         for index, i in enumerate(order_Y):
             if(len(i) > 1):
@@ -744,34 +823,46 @@ def easy(ruta, detail):
                     if(len(j) > 1):
                         x_ord = [x for x in order_X if x in j]
                         order[index][jndex] = x_ord
-                        print(j)
-                        print(x_ord)
-        print("### for ###")
-        print(order)
-        print("#############################################")
-        
+        # -------------------------------------------------------------------------------------------------------------------------
+
+        # -------------- Se crea un archivo json (e idealmente RTF) donde se estructura la transcripcion --------------
         filename = "order.json"
         # order_trans = str(order).replace(i,result[i])
         order_trans = str(order) 
         # TODO: RECORRER order, Y SOBRE ESE REEMPLAZAR CON t 
         # TODO: ARREGLAR FOTO WSP
         # TODO: REVISAR QUE TAN UTIL SERIA EL RTF
-        # TODO: AVANZAR DOCUMENTO, ORDENAR CODIGO, 
+        # TODO: AVANZAR DOCUMENTO, ORDENAR CODIGO
+
+        trans 
+        for index, i in enumerate(order):
+            if(len(i) > 1):
+                for jndex, j in enumerate(i):
+                    if(len(j) > 1):
+                        for kndex, k in enumerate(j):
+                            print(k)
+                    else:
+                        print(j)
+            else:
+                print(i)
+        exit(1)
+
+        
         for index, (p, t, a) in enumerate(result):
             p = list(map((lambda x: [round(x[0], 2), round(x[1], 2)] ), p ))
             order_trans = order_trans.replace(str(index), t)
             # print(p, t)
         write_json(order_trans, filename)
-        plt.show()
+        # -------------------------------------------------------------------------------------------------------------
+
+        if(debugg):
+            plt.show()
         exit(1)
-        # print(clusters)
-        # print(clustr)
-        # exit(1)
         return trans
     else:
         return (" ").join(result)
 
-def get_indexs(largo, index):
+def get_indexs(largo, index): #PEND
     """ Funcion obtiene indices a  partir de indice de array2 flaten
     """
     indx = 0
@@ -781,11 +872,19 @@ def get_indexs(largo, index):
         print()
     return indx, indy
 
-def deep_index(lst, w):
+def deep_index(lst, w): #PEND
+    """ Funcion que usando mush() crea una imagen que compila dos frames contiguos
+    -------------------------------------------------------
+    Input:
+        f_ruta (str): ruta frames
+        nombre (str): nombre de la extension de la carpeta de bloques
+    Output:
+        "OK" (str)
+    """
     l = list((i, sub.index(w)) for (i, sub) in enumerate(lst) if w in sub)
     return l[0]
 
-def clustering(array2):
+def clustering(array2): #PEND
     """ Funcion forma grupos segun distancias entregadas
     args: 
     array2 (array(array(int))): lista de listas con distancias entre bloques de texto en un frame
@@ -836,11 +935,27 @@ def clustering(array2):
     # print(f"ret_array2 : {ret_array2} size : {len(ret_array2)}")
     return(ret_array2)
             
-def write_json(data, filename= "adw.json"):
+def write_json(data, filename= "adw.json"): #PEND
+    """ Funcion que usando mush() crea una imagen que compila dos frames contiguos
+    -------------------------------------------------------
+    Input:
+        f_ruta (str): ruta frames
+        nombre (str): nombre de la extension de la carpeta de bloques
+    Output:
+        "OK" (str)
+    """
     with  open(filename, "w") as f:
         json.dump(data, f, indent=4)
 
-def tese(ruta, debug = False):
+def tese(ruta, debug = False): #PEND
+    """ Funcion que usando mush() crea una imagen que compila dos frames contiguos
+    -------------------------------------------------------
+    Input:
+        f_ruta (str): ruta frames
+        nombre (str): nombre de la extension de la carpeta de bloques
+    Output:
+        "OK" (str)
+    """
     inicio = time.time()
     pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
     image = cv2.imread(ruta, 0)
@@ -856,7 +971,15 @@ def tese(ruta, debug = False):
         print("TIME : %d [seg]" % round(fin-inicio, 2)) 
     return data
 
-def get_transcription(f_ruta, data = [], ocr = 1): # 1 = easyOCR y 2 = teseract
+def get_transcription(f_ruta, data = [], ocr = 1): # 1 = easyOCR y 2 = teseract #PEND
+    """ Funcion que usando mush() crea una imagen que compila dos frames contiguos
+    -------------------------------------------------------
+    Input:
+        f_ruta (str): ruta frames
+        nombre (str): nombre de la extension de la carpeta de bloques
+    Output:
+        "OK" (str)
+    """
     Frames = ls(ruta = f_ruta)
     Frames.sort()
     Frames = list(map(addJ ,Frames))
@@ -883,10 +1006,26 @@ def get_transcription(f_ruta, data = [], ocr = 1): # 1 = easyOCR y 2 = teseract
     print("TIME : %d [seg]" % round(fin-inicio, 2)) 
     return transcription
 
-def dist_2p(pos1, pos2):
+def dist_2p(pos1, pos2): # PEND
+    """ Funcion que usando mush() crea una imagen que compila dos frames contiguos
+    -------------------------------------------------------
+    Input:
+        f_ruta (str): ruta frames
+        nombre (str): nombre de la extension de la carpeta de bloques
+    Output:
+        "OK" (str)
+    """
     return sqrt( (pos2[0]-pos1[0])**2 + (pos2[1]-pos1[1])**2 )
 
-def min_dis_sq(pos1, pos2): # arrays con coordenadas de ambos cuadrados
+def min_dis_sq(pos1, pos2): # arrays con coordenadas de ambos cuadrados #PEND
+    """ Funcion que usando mush() crea una imagen que compila dos frames contiguos
+    -------------------------------------------------------
+    Input:
+        f_ruta (str): ruta frames
+        nombre (str): nombre de la extension de la carpeta de bloques
+    Output:
+        "OK" (str)
+    """
     a1,a2,a3,a4 = pos1
     b1,b2,b3,b4 = pos2
     #  usar puntos 1 y 3, ya que son de lados iguales
