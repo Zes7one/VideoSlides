@@ -772,7 +772,7 @@ def easy(ruta, detail, debugg = False): #PEND
         # print(ref_pos)
         # print(len(ref_pos))
         clusters = clustering(ref_pos)
-        print("#############################################")
+        print(" ############################################# ")
         # -------------- En order_X se dejan los indices de las textos ordenados segun su posicion en el eje x --------------
         orden_l = sorted([item for sublist in clusters for item in sublist])
         pos_l = [p[0][0] for (p, t, a) in result]
@@ -830,13 +830,22 @@ def easy(ruta, detail, debugg = False): #PEND
         # -------------------------------------------------------------------------------------------------------------------------
 
         # -------------- Se crea un archivo json (e idealmente RTF) donde se estructura la transcripcion --------------
-        filename = "order.json"
         # order_trans = str(order).replace(i,result[i])
         order_trans = str(order) 
-        # TODO: RECORRER order, Y SOBRE ESE REEMPLAZAR CON t 
         # TODO: ARREGLAR FOTO WSP
-        # TODO: REVISAR QUE TAN UTIL SERIA EL RTF
-        # TODO: AVANZAR DOCUMENTO, ORDENAR CODIGO
+        # TODO: REVISAR QUE TAN UTIL SERIA EL RTF (no mucho, se puede agregar formato, y quizas imagenes, -> buscar valor o uso de los RTF)
+        # TODO: AVANZAR DOCUMENTO ->
+        # TODO: REVISAR SI PUEDO ELIMINAR REDUNDACIA PERO AHORA DESDE LAS TRANSCRIPCION
+        # TODO. REVISAR SI EXISTE ALGUNA FORMA DE ENTREGAR MAYOR VALOR A LA ESTRUCTURACION ( ETIQUETAS ? : TITTLE, COMMENT, NAMES, NUMBER OR DATES)
+        # TODO: REVISAR FORMAS DE OBTENER CONTEXTO DE INFO EN UNA LAMINA (QUIZAS FILTRAR Y OMITIR INFORMACION NO RELEVANTE)
+        # TODO: LEMATIZACION Y  TOKENIZACION
+        # TODO: N-GRAMA PARA LA CORRECCION -> REVISAR QUE PALABRAS SE REPITEN MAS Y QUIZAR HACER UNA ANALISIS ESTADISTICO CON ESTO (UN PLUS (?))
+        # TODO: MENCIONAR QUE SE PUEDE MEJORAR EL CALCULO DE DISTANCIA ENTRE CUADRADOS DE TEXTO -> MEJORAR ESTRUCTURACION EN CASO DE TEXTO EN DIAGONAL
+        # TODO: 
+
+
+
+
 
         for index, i in enumerate(order):
             if(len(i) > 1):
@@ -849,54 +858,43 @@ def easy(ruta, detail, debugg = False): #PEND
             else:
                 order[index][0] = trans_l[i[0]]
 
-        write_json(order, filename)
+        # filename = "order"
+        # write_json(order, filename)
         print("#############################################")
         if(debugg):
             plt.show()
-        
-        exit(1)
-
-        
-        for index, (p, t, a) in enumerate(result):
-            p = list(map((lambda x: [round(x[0], 2), round(x[1], 2)] ), p ))
-            order_trans = order_trans.replace(str(index), t)
-            # print(p, t)
-        write_json(order_trans, filename)
+        # return trans
+        return order
         # -------------------------------------------------------------------------------------------------------------
-
-        exit(1)
-        return trans
+        # for index, (p, t, a) in enumerate(result):
+        #     p = list(map((lambda x: [round(x[0], 2), round(x[1], 2)] ), p ))
+        #     order_trans = order_trans.replace(str(index), t)
+        #     # print(p, t)
+        # write_json(order_trans, filename)
+        
     else:
         return (" ").join(result)
 
-def get_indexs(largo, index): #PEND
-    """ Funcion obtiene indices a  partir de indice de array2 flaten
-    """
-    indx = 0
-    indy = 0
-    for i in range(largo):
-        #LOGICA para obtener los indices
-        print()
-    return indx, indy
-
-def deep_index(lst, w): #PEND
-    """ Funcion que usando mush() crea una imagen que compila dos frames contiguos
+def deep_index(lst, w):
+    """ Funcion que entrega los indices de puntos a los cuales corresponde la distancia indicada en w, dentro de la lista triangular lst (no flatten)
     -------------------------------------------------------
     Input:
-        f_ruta (str): ruta frames
-        nombre (str): nombre de la extension de la carpeta de bloques
+        lst array2 (array(arrays(int))): lista de listas con distancias entre bloques de texto, (estructura triangular: [a disntacia con b, c, d, e] [b distancia con c, d, e] ...)
+        w (str): palabra/numero a indexar en las lista lst
     Output:
-        "OK" (str)
+        l[0] (tuple(int, int)): indices de puntos a los cuales corresponde la distancia indicada en w
     """
     l = list((i, sub.index(w)) for (i, sub) in enumerate(lst) if w in sub)
+
     return l[0]
 
-def clustering(array2): #PEND
+def clustering(array2):
     """ Funcion forma grupos segun distancias entregadas
-    args: 
-    array2 (array(array(int))): lista de listas con distancias entre bloques de texto en un frame
-    returns:
-    ret_array2 (array(array(int))): lista de grupos creados a partir de las distancias
+    -------------------------------------------------------
+    Input:
+        array2 (array(arrays(int))): lista de listas con distancias entre bloques de texto, (estructura triangular: [a disntacia con b, c, d, e] [b distancia con c, d, e] ...)
+    Output:
+        ret_array2 (array(array(int))): array de lista de grupos creados a partir de las distancias (no reundantes)
     """
     tot = len(array2)
     aux = [[None]]*tot
@@ -942,26 +940,27 @@ def clustering(array2): #PEND
     # print(f"ret_array2 : {ret_array2} size : {len(ret_array2)}")
     return(ret_array2)
             
-def write_json(data, filename= "adw.json"): #PEND
-    """ Funcion que usando mush() crea una imagen que compila dos frames contiguos
+def write_json(data, filename= "default"): 
+    """ Funcion que escribe data en un archivo formato json
     -------------------------------------------------------
     Input:
-        f_ruta (str): ruta frames
-        nombre (str): nombre de la extension de la carpeta de bloques
+        data (array o dict): data estructurada en listas o diccionarios 
+        filename (str): nombre del archivo incluyendo la extension
     Output:
-        "OK" (str)
+        No aplica
     """
+    filename = f"{filename}.json"
     with  open(filename, "w") as f:
         json.dump(data, f, indent=4)
 
-def tese(ruta, debug = False): #PEND
-    """ Funcion que usando mush() crea una imagen que compila dos frames contiguos
+def tese(ruta, debug = False): 
+    """ Funcion que desde un frame/imagene obtiene una transcripcion usando OCR tesseract
     -------------------------------------------------------
     Input:
-        f_ruta (str): ruta frames
-        nombre (str): nombre de la extension de la carpeta de bloques
+        ruta (str): ruta de frame/imagen a transcribir
+        debug (boolean): indicador si se quiere o no mostrar la imagen a transcribir
     Output:
-        "OK" (str)
+        data (str): transcripcion de la imagen a texto
     """
     inicio = time.time()
     pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
@@ -978,14 +977,16 @@ def tese(ruta, debug = False): #PEND
         print("TIME : %d [seg]" % round(fin-inicio, 2)) 
     return data
 
-def get_transcription(f_ruta, data = [], ocr = 1): # 1 = easyOCR y 2 = teseract #PEND
-    """ Funcion que usando mush() crea una imagen que compila dos frames contiguos
+def get_transcription(f_ruta, data = [], ocr = 1): 
+    """ Funcion que itera sobre los frames/imagenes transcribiendolas usando algun OCR (easyOCR o teseract) 
+    1 = easyOCR
+    2 = teseract 
     -------------------------------------------------------
     Input:
         f_ruta (str): ruta frames
-        nombre (str): nombre de la extension de la carpeta de bloques
+        data (list): array con posiciones, usadas como filtro en la seleccion de imagenes
     Output:
-        "OK" (str)
+        transcription (str o list): texto recopilado de cada frame unido en una sola estuctura
     """
     Frames = ls(ruta = f_ruta)
     Frames.sort()
@@ -993,6 +994,7 @@ def get_transcription(f_ruta, data = [], ocr = 1): # 1 = easyOCR y 2 = teseract 
     inicio = time.time()
 
     transcription = ""
+    json = []
     # iteracion sobre Frames contiguos, comparando por cantidad de pixeles diferntes y por metric SSIM, para eliminar los con info repetida
     f_ruta = f_ruta+"/"
     for a, frame in enumerate(Frames):
@@ -1005,33 +1007,39 @@ def get_transcription(f_ruta, data = [], ocr = 1): # 1 = easyOCR y 2 = teseract 
             # if(a != 0):
             rute = f_ruta+ str(i)+'.jpg'
             if (ocr == 1):
-                transcription = transcription + easy(rute, 1) + "\n\n"
+                # transcription = transcription + easy(rute, 0) + "\n\n"
+                json.append(easy(rute, 1))
             elif (ocr == 2):
                 transcription = transcription + tese(rute, False) + "\n\n"
+
+    if (ocr == 1):
+        filename = "order"
+        write_json(json, filename)
+
     
     fin = time.time()
     print("TIME : %d [seg]" % round(fin-inicio, 2)) 
     return transcription
 
-def dist_2p(pos1, pos2): # PEND
-    """ Funcion que usando mush() crea una imagen que compila dos frames contiguos
+def dist_2p(pos1, pos2): 
+    """ Obtienen la distancia euclidiana entre dos puntos
     -------------------------------------------------------
     Input:
-        f_ruta (str): ruta frames
-        nombre (str): nombre de la extension de la carpeta de bloques
+        pos1 (tuple(int,int)): valores en eje x e y de punto 1
+        pos2 (tuple(int,int)): valores en eje x e y de punto 2
     Output:
-        "OK" (str)
+        distancia (float)
     """
     return sqrt( (pos2[0]-pos1[0])**2 + (pos2[1]-pos1[1])**2 )
 
-def min_dis_sq(pos1, pos2): # arrays con coordenadas de ambos cuadrados #PEND
-    """ Funcion que usando mush() crea una imagen que compila dos frames contiguos
+def min_dis_sq(pos1, pos2):
+    """ Funcion que entrega la distancia entre dos cuadrados, asumiendo diferentes casos reduciendo el calculo a distancia entre dos puntos 
     -------------------------------------------------------
     Input:
-        f_ruta (str): ruta frames
-        nombre (str): nombre de la extension de la carpeta de bloques
+        pos1 (arrays(int,int)): valores en eje x e y de punto 1
+        pos2 (arrays(int,int)): valores en eje x e y de punto 2
     Output:
-        "OK" (str)
+        distancia (float)
     """
     a1,a2,a3,a4 = pos1
     b1,b2,b3,b4 = pos2
