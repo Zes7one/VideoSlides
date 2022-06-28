@@ -29,6 +29,7 @@ import matplotlib.patches as patches
 from math import sqrt 
 from math import floor
 
+import stanza
 ###################################### FUNCIONES EXTRA ######################################
 def addJ (name):
     # return "test/"+str(name)+".jpg"
@@ -265,6 +266,7 @@ def getFrames(ruta, saltos, escala = 100 ,fname = "Default"):
             # resize image
             resized = cv2.resize(image, dim, interpolation = cv2.INTER_AREA)
             cv2.imwrite(RutaVideo+"%d.jpg" % count, resized)     # save frame as JPEG file  
+            # print(RutaVideo+"%d.jpg" % count)
         success,image = vidcap.read()
         count += 1
     
@@ -420,7 +422,8 @@ def clean(f_ruta, nombre):
     Frames.sort()
     Frames = list(map(addJ ,Frames))
     prefijo = "clean" 
-    nombre = "./%s_%s" % (prefijo, nombre)
+    n = nombre
+    nombre = f"./{prefijo}_{nombre}"
 
     if (not os.path.isdir(nombre)):
         os.mkdir(nombre)
@@ -438,7 +441,7 @@ def clean(f_ruta, nombre):
                 shutil.copy(rute1, nombre)
                 j += 1
         anterior = i
-    return "OK"
+    return f"{prefijo}_{n}"
 
 def clean_a(f_ruta): 
     """ Funcion que retorna array con posiciones de los frames filtrados (no mueve los frames de la carpeta actual)
@@ -738,7 +741,12 @@ def easy(ruta, detail, debugg = False): #PEND
             aux = []
             count = 0
             trans = trans + t + "\n"
-            trans_l.append(t)
+            # -------------------- SE APLICA LA LEMATIZACION EN LAS TRANSCRIPCIONES --------------------
+            trans_l.append(lemat(t))
+            # ------------------------------------------------------------------------------------------
+            # -------------------- SIN APLICARLA  --------------------
+            # trans_l.append(t)
+            # --------------------------------------------------------
             for  pos, text, accu in result :			
                 if (c < count): 
                     dis = round(min_dis_sq(p, pos),2)
@@ -767,6 +775,10 @@ def easy(ruta, detail, debugg = False): #PEND
             ax.set_xlim(0, ejex+50)
             ax.set_ylim(0, ejey+50)
             ax.invert_yaxis()
+        
+        if(len(ref_pos) == 0 ):
+            return []
+
         # fin = time.time()
         # print("TIME : %d [seg]" % round(fin-inicio, 2)) 
         # print(ref_pos)
@@ -858,12 +870,22 @@ def easy(ruta, detail, debugg = False): #PEND
             else:
                 order[index][0] = trans_l[i[0]]
 
+
+        # --------------------- UNIENDO LOS TEXTOS QUE PERTENECEN AL MISMO PARRAFO ---------------------
+        # for index, i in enumerate(order):
+        #     if(len(i) > 1):
+        #         for jndex, j in enumerate(i):
+        #             if(len(j) > 1):
+        #                 for kndex, k in enumerate(j):
+        # ----------------------------------------------------------------------------------------------
+
         # filename = "order"
-        # write_json(order, filename)
         print("#############################################")
         if(debugg):
             plt.show()
         # return trans
+        # print(order)
+        # exit(1)
         return order
         # -------------------------------------------------------------------------------------------------------------
         # for index, (p, t, a) in enumerate(result):
@@ -1090,6 +1112,26 @@ def min_dis_sq(pos1, pos2):
 
     else:
         print("FALLO 3")
+
+def lemat( text ):
+    """ Funcion que lematiza el texto recibido
+    -------------------------------------------------------
+    Input:
+        text (str): string con oración o parrafo a ser lematizado
+    Output:
+        ret (str): string con texto lematizado
+    """
+    # stanza.download('es')
+    nlp = stanza.Pipeline('es', verbose= False)
+
+    # doc = nlp('El ama de llaves abrió la puerta')
+    doc = nlp(text)
+    ret = ""
+    for sent in doc.sentences:
+        for word in sent.words:
+            ret = ret + " " + word.lemma    
+            # print(f'word: {word.text} \tlemma: {word.lemma}') 
+    return ret
 ################################ MAIN ################################
 
 # mar2('C:/Users/FrancoPalma/Downloads/IMAGENES2-20220408T005748Z-001/Data(issame)', 'C:/Users/FrancoPalma/Downloads/IMAGENES2-20220408T005748Z-001/Data')
@@ -1100,14 +1142,14 @@ def min_dis_sq(pos1, pos2):
 
 # RC10 = "./video2/y2mate.com - Almacén Digital_360p.mp4"  # frames vienen con problemas
 # RC = "./video2/Data Health.mp4" # tamaño de los frames es muy grande
-RC2 = "./video2/Closet Cleanup_360p.mp4.webm"    
-RC3 = "./video2/Estrategia Digital MBA UC examen_360p.mp4"
-RC4 = "./video2/MBAUC  Q22021  Estrategia Digital  Grow  Invest_360p.mp4"
-RC5 = "./video2/Pitch Lifetech_360p.mp4"
-RC6 = "./video2/PLATAFOMRA DE SEGUROSEST DIGITAL_360p.mp4"
-RC7 = "./video2/Presentacion   TRADE NOW_360p.mp4.webm"
-RC8 = "./video2/Un alivio a un click de distancia_360p.mp4"
-RC9 = "./video2/VESKI_360p.mp4"
+RC2 = "../video2/Closet Cleanup_360p.mp4.webm"    
+RC3 = "../video2/Estrategia Digital MBA UC examen_360p.mp4"
+RC4 = "../video2/MBAUC  Q22021  Estrategia Digital  Grow  Invest_360p.mp4"
+RC5 = "../video2/Pitch Lifetech_360p.mp4"
+RC6 = "../video2/PLATAFOMRA DE SEGUROSEST DIGITAL_360p.mp4"
+RC7 = "../video2/Presentacion   TRADE NOW_360p.mp4.webm"
+RC8 = "../video2/Un alivio a un click de distancia_360p.mp4"
+RC9 = "../video2/VESKI_360p.mp4"
 
 # parametrizar de tal forma de pasarse en el numero de diapos en vez de que falten ( menor perdida )
 ################# OBTENER FRAMES #################
@@ -1147,7 +1189,22 @@ lista_nombreVideo = [NV2, NV3, NV4, NV5, NV6, NV7, NV8, NV9]
 
 
 
-rutaFrames, nombreVideo = "../CLEAN/clean_ClosetCleanup_360pwebm", "clean_ClosetCleanup_360pwebm"
+
+# ---------------------------------------- EJECUCION COMPLETA ----------------------------------------
+# ruta = "../video2/Video Clase MTI/mti.mp4"   
+# rutaFrames, nombreVideo = getFrames(ruta, saltos, escala)
+# print(f"FIN GET FRAMES : {rutaFrames} y {nombreVideo}")
+# rutaFrames = clean(rutaFrames, nombreVideo)
+# print(f"FIN clean FRAMES : {rutaFrames} y {nombreVideo}")
+# sets = get_setslides(rutaFrames)
+# seleccionados =  last_ones(sets)
+# get_transcription(rutaFrames, data = seleccionados, ocr = 1)
+# ----------------------------------------------------------------------------------------------------
+
+
+rutaFrames = "clean_mti"
+
+# rutaFrames, nombreVideo = "../CLEAN/clean_ClosetCleanup_360pwebm", "clean_ClosetCleanup_360pwebm"
 # rutaFrames, nombreVideo = "./CLEAN/clean_EstrategiaDigitalMBAUCexamen_360p", "clean_EstrategiaDigitalMBAUCexamen_360p"
 # rutaFrames, nombreVideo = "./CLEAN/clean_MBAUCQ22021EstrategiaDigitalGrowInvest_360p", "clean_MBAUCQ22021EstrategiaDigitalGrowInvest_360p"
 
