@@ -199,7 +199,7 @@ def download_video(url):
     Input:
         url (str): link del video de youtube
     Output:
-        No posee
+        No aplica
     """
     ''' 
     CAMBIOS QUE REQUIERE EN CIPHER.PY (DOCUMENTOS DE LA LIBRERIA)
@@ -639,7 +639,11 @@ def classic(data, nombre):
     plt.plot(data, label='data', color='b')
     # plt.plot(np.log(data), label='log.data', color='g')
     plt.legend(bbox_to_anchor=(1.05, 1),loc='upper left', borderaxespad=0.)
-    plt.title("%s (%f,%f)" % (nombre, minim, maxim))
+    # plt.title(f"{nombre} ({minim},{maxim})")
+    plt.xlabel("Par de frames")
+    plt.ylabel("SIMM par de frames")
+    number_of_diapos, pos = localmin(data)
+    plt.title(f"{nombre} ({number_of_diapos})")
     plt.show()
 
 def histograma(data, nombre): 
@@ -662,7 +666,7 @@ def get_setslides(f_ruta, data = []):
     -------------------------------------------------------
     Input:
         f_ruta (str): ruta desde el archivo 
-        data (list): array con posiciones de frames que se filtraron ()
+        data (list): array con posiciones de frames que se filtraron
     Output:
         sets (dict)
     """ 
@@ -711,14 +715,18 @@ def last_ones(array):
         retorno.append(array[i][-1])
     return retorno
 
-def easy(ruta, detail, debugg = False): #PEND
-    """ Funcion que usando mush() crea una imagen que compila dos frames contiguos
+def easy(ruta, detail, debugg = False):
+    """ Funcion que :
+    - Obtiene una transcripcion de una imagen y las posiciones de cada bloque de texto
+    - Dadas las posiciones calcula las distancias entre ellos
+    - Con las distancias estructura las transcripciones en orden de lectura occidental (arriba hacia abajo e izquierda a derecha)
     -------------------------------------------------------
     Input:
-        f_ruta (str): ruta frames
-        nombre (str): nombre de la extension de la carpeta de bloques
+        ruta (str): ruta frames
+        detail (str): nombre de la extension de la carpeta de bloques
+        debugg (boolean): True -> grafica sobre la imagen los bloques de texto reconocidos
     Output:
-        "OK" (str)
+        order (array): lista con la transcripcion estructurada 
     """
     
     reader = easyocr.Reader(['en'], gpu=False) # this needs to run only once to load the model into memory
@@ -1161,14 +1169,32 @@ lista_rutas = [RC2, RC3, RC4, RC5, RC6, RC7, RC8, RC9]
     # print(i, ruta)
     # rutaFrames, nombreVideo = getFrames(ruta, saltos, escala)
 
-# rutaFrames, nombreVideo = "./video2/F_ClosetCleanup_360pwebm", "ClosetCleanup_360pwebm"
-# rutaFrames, nombreVideo = "./video2/F_EstrategiaDigitalMBAUCexamen_360p", "EstrategiaDigitalMBAUCexamen_360p"
-# rutaFrames, nombreVideo = "./video2/F_MBAUCQ22021EstrategiaDigitalGrowInvest_360p", "MBAUCQ22021EstrategiaDigitalGrowInvest_360p"
-# rutaFrames, nombreVideo = "./video2/F_PitchLifetech_360p", "PitchLifetech_360p"
-# rutaFrames, nombreVideo = "./video2/F_PLATAFOMRADESEGUROSESTDIGITAL_360p", "PLATAFOMRADESEGUROSESTDIGITAL_360p"
-# rutaFrames, nombreVideo = "./video2/F_PresentacionTRADENOW_360pwebm", "PresentacionTRADENOW_360pwebm"
-# rutaFrames, nombreVideo = "./video2/F_Unalivioaunclickdedistancia_360p", "Unalivioaunclickdedistancia_360p"
-# rutaFrames, nombreVideo = "./video2/F_VESKI_360p", "VESKI_360p"
+lista_rutas = []
+lista_names = []
+rutaFrames, nombreVideo = "../video2/F_ClosetCleanup_360pwebm", "ClosetCleanup"
+lista_rutas.append(rutaFrames)
+lista_names.append(nombreVideo)
+rutaFrames, nombreVideo = "../video2/F_EstrategiaDigitalMBAUCexamen_360p", "EstrategiaDigitalMBAUCexamen"
+lista_rutas.append(rutaFrames)
+lista_names.append(nombreVideo)
+rutaFrames, nombreVideo = "../video2/F_MBAUCQ22021EstrategiaDigitalGrowInvest_360p", "MBAUCQ22021EstrategiaDigitalGrowInvest"
+lista_rutas.append(rutaFrames)
+lista_names.append(nombreVideo)
+rutaFrames, nombreVideo = "../video2/F_PitchLifetech_360p", "PitchLifetech"
+lista_rutas.append(rutaFrames)
+lista_names.append(nombreVideo)
+rutaFrames, nombreVideo = "../video2/F_PLATAFOMRADESEGUROSESTDIGITAL_360p", "PLATAFOMRADESEGUROSESTDIGITAL"
+lista_rutas.append(rutaFrames)
+lista_names.append(nombreVideo)
+rutaFrames, nombreVideo = "../video2/F_PresentacionTRADENOW_360pwebm", "PresentacionTRADENOW"
+lista_rutas.append(rutaFrames)
+lista_names.append(nombreVideo)
+rutaFrames, nombreVideo = "../video2/F_Unalivioaunclickdedistancia_360p", "Unalivioaunclickdedistancia"
+lista_rutas.append(rutaFrames)
+lista_names.append(nombreVideo)
+rutaFrames, nombreVideo = "../video2/F_VESKI_360p", "VESKI"
+lista_rutas.append(rutaFrames)
+lista_names.append(nombreVideo)
 
 RC2, NV2 = "../CLEAN/clean_ClosetCleanup_360pwebm" 						, "clean_ClosetCleanup_360pwebm"
 RC3, NV3 = "../CLEAN/clean_EstrategiaDigitalMBAUCexamen_360p"			, "clean_EstrategiaDigitalMBAUCexamen_360p"
@@ -1182,10 +1208,15 @@ RC9, NV9 = "../CLEAN/clean_VESKI_360p"									, "clean_VESKI_360p"
 lista_rutas_clean = [RC2, RC3, RC4, RC5, RC6, RC7, RC8, RC9]
 lista_nombreVideo = [NV2, NV3, NV4, NV5, NV6, NV7, NV8, NV9]
 
-# for i, ruta in enumerate(lista_rutas_clean):
+# for i, ruta in enumerate(lista_rutas):
+#     ploteo(ruta, lista_names[i] )  # grafica
+
+for i, ruta in enumerate(lista_rutas_clean):
     # print(ruta, lista_nombreVideo[i])
-    # ploteo(ruta, lista_nombreVideo[i] )  # grafica 
+    # ploteo(ruta, lista_nombreVideo[i] )  # grafica
+    ploteo(ruta, lista_names[i] )  # grafica
     # clean( ruta, lista_nombreVideo[i] )
+exit(1)
 
 
 

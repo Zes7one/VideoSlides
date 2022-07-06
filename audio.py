@@ -106,15 +106,16 @@ def graph_audio(rutao):
     plt.figure()
     plt.subplot(3, 1, 1)
     plt.plot(t, y)
-    plt.xlabel('t')
-    plt.ylabel('y')
+    plt.xlabel('tiempo [s]')
+    plt.ylabel('frequencia [Hz]')
+    plt.title(nombre)
 
     # frq, X = frequency_spectrum(y, sr)
 
     plt.subplot(3, 1, 2)
     plt.plot(t, yhat, 'b')
-    plt.xlabel('t')
-    plt.ylabel('y smooth')
+    plt.xlabel('tiempo [s]')
+    plt.ylabel('frequencia suavizada 1 [Hz]')
     plt.tight_layout()
     # plt.title(nombre)
     # plt.show()
@@ -131,37 +132,36 @@ def graph_audio(rutao):
 
     plt.subplot(3, 1, 3)
     plt.plot(t, y2, 'b')
-    plt.xlabel('t')
-    plt.ylabel('y smooth')
+    plt.xlabel('tiempo [s]')
+    plt.ylabel('frequencia suavizada 2 [Hz]')
     plt.tight_layout()
-    plt.title(nombre)
     plt.show()
 
 
-RC   = "video2\\Data Health.mp4"
-RC2  = "video2\\VESKI_360p.mp4"
-RC3  = "video2\\Estrategia Digital MBA UC examen_360p.mp4"
-RC4  = "video2\\Un alivio a un click de distancia_360p.mp4"
-RC5  = "video2\\MBAUC  Q22021  Estrategia Digital  Grow  Invest_360p.mp4"
-RC6  = "video2\\PLATAFOMRA DE SEGUROSEST DIGITAL_360p.mp4"
-RC7  = "video2\\Pitch Lifetech_360p.mp4"
-RC8  = "video2\\Presentacion   TRADE NOW_360p.mp4.webm"
-RC9  = "video2\\Closet Cleanup_360p.mp4.webm"
-RC10 = "video2\\Almacén Digital_360p.mp4"
+RC   = "..\\video2\\Data Health.mp4"
+RC2  = "..\\video2\\VESKI_360p.mp4"
+RC3  = "..\\video2\\Estrategia Digital MBA UC examen_360p.mp4"
+RC4  = "..\\video2\\Un alivio a un click de distancia_360p.mp4"
+RC5  = "..\\video2\\MBAUC  Q22021  Estrategia Digital  Grow  Invest_360p.mp4"
+RC6  = "..\\video2\\PLATAFOMRA DE SEGUROSEST DIGITAL_360p.mp4"
+RC7  = "..\\video2\\Pitch Lifetech_360p.mp4"
+RC8  = "..\\video2\\Presentacion   TRADE NOW_360p.mp4.webm"
+RC9  = "..\\video2\\Closet Cleanup_360p.mp4.webm"
+RC10 = "..\\video2\\Almacén Digital_360p.mp4"
 
 
 here_path = os.path.dirname(os.path.realpath(__file__))
-test_mp4 = 'video2\\test.mp4'
+test_mp4 = '..\\video2\\test.mp4'
 # test = os.path.join(here_path, test_mp4)
 # graph_audio(test)
 
-graph_audio(os.path.join(here_path, RC))
+# graph_audio(os.path.join(here_path, RC))
 graph_audio(os.path.join(here_path, RC2))
-graph_audio(os.path.join(here_path, RC3))
-graph_audio(os.path.join(here_path, RC4))
-graph_audio(os.path.join(here_path, RC5))
-graph_audio(os.path.join(here_path, RC6))
-graph_audio(os.path.join(here_path, RC7))
-graph_audio(os.path.join(here_path, RC8))
+# graph_audio(os.path.join(here_path, RC3))
+# graph_audio(os.path.join(here_path, RC4))
+# graph_audio(os.path.join(here_path, RC5))
+# graph_audio(os.path.join(here_path, RC6))
+# graph_audio(os.path.join(here_path, RC7))
+# graph_audio(os.path.join(here_path, RC8))
 graph_audio(os.path.join(here_path, RC9))
-graph_audio(os.path.join(here_path, RC10))
+# graph_audio(os.path.join(here_path, RC10))
