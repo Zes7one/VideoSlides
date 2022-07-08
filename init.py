@@ -2,11 +2,49 @@ import os
 import time
 import cv2
 from pytube import YouTube
+import validators
+from pytube import YouTube
+
+def download_video(url): 
+    """ Descarga un video de youtube 
+    -------------------------------------------------------
+    Input:
+        url (str): link del video de youtube
+    Output:
+        No aplica
+    """
+    ''' 
+    CAMBIOS QUE REQUIERE EN CIPHER.PY (DOCUMENTOS DE LA LIBRERIA)
+    lineas 272 y 273
+    r'a\.[a-zA-Z]\s*&&\s*\([a-z]\s*=\s*a\.get\("n"\)\)\s*&&\s*'
+    r'\([a-z]\s*=\s*([a-zA-Z0-9$]{2,3})(\[\d+\])?\([a-z]\)'
+    cambiar linea  288
+    nfunc=re.escape(function_match.group(1))),
+    '''
+    # for stream in video.streams:
+    #     print(stream)
+    try:
+        video = YouTube(url)
+        video = video.streams.get_highest_resolution()
+        video.download()
+        return True
+    except:
+        return False
 
 class Video:
     def __init__(self, path, scale, saltos): # scale:percent of original size
+        if (validators.url(path)):
+            status = download_video(path)
+            if(not status):
+                raise Exception("El link entregado no es un video")
+            path = os.path.dirname(os.path.abspath(__file__))
+            exit(1)
+            # path = 
+
         real_VideoName = path.split("/")[-1]
         RutaVideo = path.replace(real_VideoName, '')
+
+
 
         self.path = path
         self.video_name = real_VideoName.replace("y2mate.com", "").replace(".mp4", "").replace(" ", "").replace(".", "").replace("-", "")
@@ -75,6 +113,10 @@ RC8 = "./video2/y2mate.com - Un alivio a un click de distancia_360p.mp4"
 RC9 = "./video2/y2mate.com - VESKI_360p.mp4"
 RC10 = "./video2/y2mate.com - Almacén Digital_360p.mp4"   # PROBLEMAS ?
 
+string = "http://google.com"
+string = "https://youtu.be/47OC5rFeXGs"
+video1 = Video(string, 100, 1)
+
 # video1 = Video(RC1, 100, 1)
 # video2 = Video(RC2, 100, 1)
 # video3 = Video(RC3, 100, 1)
@@ -96,6 +138,8 @@ RC10 = "./video2/y2mate.com - Almacén Digital_360p.mp4"   # PROBLEMAS ?
 # print(video8.get_fps())
 # print(video9.get_fps())
 # print(video10.get_fps())
+
+
 
 
 

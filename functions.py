@@ -35,8 +35,15 @@ def addJ (name):
     # return "test/"+str(name)+".jpg"
     return str(name)+".jpg"
 
-# Lista de nombres de Frames como numero
+
 def ls(ruta = Path.cwd()):
+    """ Funcion que obtiene Lista de nombres de Frames casteado a entero
+    -------------------------------------------------------
+    Input:
+        ruta (str): ruta de carpeta donde se encuentran los frames
+    Output:
+        (array(int)) Lista de nombres de Frames casteado a entero
+    """
     return [int(arch.name.split(".")[0]) for arch in Path(ruta).iterdir() if (arch.is_file() and re.search(r'\.jpg$', arch.name))]
 
 # Lista de nombres de Frames	
@@ -610,8 +617,9 @@ def localmin(data):
         counts[1] (int): numero de minimos locales encontrados
         pos (list): posiciones correspondiente a los minimos locales dentro del array data
     """
-    a_min =  np.r_[True, data[1:] < data[:-1]] & np.r_[data[:-1] < data[1:], True]
-    a_max =  np.r_[True, data[1:] > data[:-1]] & np.r_[data[:-1] > data[1:], True]
+    coef = 0.98
+    a_min =  np.r_[True, data[1:] < data[:-1]] & np.r_[data[:-1] < data[1:], True] & np.r_[data < coef]
+    # a_max =  np.r_[True, data[1:] > data[:-1]] & np.r_[data[:-1] > data[1:], True]
     unique, counts = np.unique(a_min, return_counts=True)
     pos = []
     for index, i in enumerate(a_min):
@@ -729,7 +737,7 @@ def easy(ruta, detail, debugg = False):
         order (array): lista con la transcripcion estructurada 
     """
     
-    reader = easyocr.Reader(['en'], gpu=False) # this needs to run only once to load the model into memory
+    reader = easyocr.Reader(['en'])#, gpu=False) # this needs to run only once to load the model into memory
     result = reader.readtext(ruta, detail = detail)
     if (detail == 1):
         trans = ""
@@ -1211,25 +1219,29 @@ lista_nombreVideo = [NV2, NV3, NV4, NV5, NV6, NV7, NV8, NV9]
 # for i, ruta in enumerate(lista_rutas):
 #     ploteo(ruta, lista_names[i] )  # grafica
 
-for i, ruta in enumerate(lista_rutas_clean):
-    # print(ruta, lista_nombreVideo[i])
-    # ploteo(ruta, lista_nombreVideo[i] )  # grafica
-    ploteo(ruta, lista_names[i] )  # grafica
-    # clean( ruta, lista_nombreVideo[i] )
-exit(1)
+## ----------------- CODIGO PARA GRAFICAR TODOS LOS VIDEOS -----------------
+# for i, ruta in enumerate(lista_rutas_clean):
+#     # print(ruta, lista_nombreVideo[i])
+#     # ploteo(ruta, lista_nombreVideo[i] )  # grafica
+#     ploteo(ruta, lista_names[i] )  # grafica
+#     # clean( ruta, lista_nombreVideo[i] )
+# exit(1)
 
 
 
 
 # ---------------------------------------- EJECUCION COMPLETA ----------------------------------------
-# ruta = "../video2/Video Clase MTI/mti.mp4"   
+ruta = "../video2/Video Clase MTI/mti.mp4"   
 # rutaFrames, nombreVideo = getFrames(ruta, saltos, escala)
 # print(f"FIN GET FRAMES : {rutaFrames} y {nombreVideo}")
 # rutaFrames = clean(rutaFrames, nombreVideo)
 # print(f"FIN clean FRAMES : {rutaFrames} y {nombreVideo}")
-# sets = get_setslides(rutaFrames)
-# seleccionados =  last_ones(sets)
-# get_transcription(rutaFrames, data = seleccionados, ocr = 1)
+rutaFrames, nombreVideo = "./clean_mti", "mti"
+# ploteo(rutaFrames, nombreVideo )  # grafica
+# exit(1)
+sets = get_setslides(rutaFrames)
+seleccionados =  last_ones(sets)
+get_transcription(rutaFrames, data = seleccionados, ocr = 1)
 # ----------------------------------------------------------------------------------------------------
 
 
