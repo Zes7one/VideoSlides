@@ -590,6 +590,7 @@ def ploteo(f_ruta, nombre, data = []):
     Input:
         f_ruta (str): ruta frames
         nombre (str): nombre de la data (video)
+        data
     Output:
         "OK" (str)
     """
