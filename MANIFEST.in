@@ -1,0 +1,3 @@
+include *.drawio
+recursive-include src *.py
+recursive-include src *.txt
