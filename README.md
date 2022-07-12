@@ -12,7 +12,6 @@ pip install videoslides
 
     # Crear clase de Video
 
-    inicio = time.time()
     video1 = Video(string, 100, 1, True)
     video1.clean_frames()
     video1.set_data()
@@ -24,6 +23,3 @@ pip install videoslides
     print(video1.slides)
     print(video1.transcription)
     # ploteo(video1.video_name , video1.data) # grafica
-    fin = time.time()
-    print("TIME : %d [seg]" % round(fin-inicio, 2)) 
-
