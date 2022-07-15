@@ -24,8 +24,8 @@ setup(
     ],
     classifiers=[
         "Programming Language :: Python :: 3.6",
-        "License :: MTI",
-        "Operating system ::  Os independant",
+        "License :: OSI Approved :: MIT License",
+        "Operating System :: OS Independent", 
         "Intended Audience :: Developers"
     ],
     url="https://github.com/Zes7one/VideoSlides",

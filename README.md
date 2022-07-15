@@ -1,11 +1,12 @@
 # Video Slides
 
-Descripcion corta: 
-
+Package made to obtain a text transcription from a video, with a flow from video to frames to structured frames to transcription in a json file 
+Paquete hecho para obtener una transcripcion desde un video, con un flujo que inicia con un video se obtienen sus frames y finalmente se extrae la transcripcion estructurada 
 
 ## Instalacion:
 
-Con el comando :
+Mediante el siguiente comando :
+
 pip install videoslides
 
 ## Ejemplos de uso

@@ -1,6 +1,5 @@
 import validators
 import warnings
-import time
 import os
 import cv2
 import functions as fc
@@ -70,7 +69,11 @@ class Video:
 
         # ------------ Se guardan los frames o se crea lista de frames ------------
         count = 0
-        frames = []
+        if(local):
+            frames = []
+        else:
+            frames = self.frames_path
+        
         while (count < self.num_frames-1):
             if(count%(self.fps*saltos) == 0):
                 # resize image
@@ -109,6 +112,13 @@ class Video:
         self.frames_path = frames_path
 
     def set_data(self): # se setea la data segun este usandose de forma local o no
+        """ Funcion que usando getqua() sobre frames ordenados entrega un array con los valores evaluados de frames contiguos
+        -------------------------------------------------------
+        Input: TODO
+            posiciones (array): lista con posiciones de los frames elegios para conformar el conjunto final de diapositivas
+        Output:
+            No aplica
+        """
         if(self.local):
             self.data = fc.getdata(self.frames) # caso local 
         else:
@@ -156,98 +166,15 @@ class Video:
             warnings.warn(f"Warning........... {msg}")
 
         if(self.local):
-            self.transcription = fc.get_transcription(self.frames, self.slides) # caso local 
+            self.transcription = fc.get_transcription(self.frames, self.slides, self.local) # caso local 
         else:
-            self.transcription = fc.get_transcription(self.frames_path, self.slides) # caso NO local
+            self.transcription = fc.get_transcription(self.frames_path, self.slides, self.local) # caso NO local
 
-    def clean_frames(self):
+    def clean_frames(self): # TODO dar libertad de los rangos a los cuales se desea filtrar
         if(self.local):
             self.frames = fc.clean(self.frames)
         else:
             fc.clean(self.frames_path)
-
-
-RC8 = "./video2/y2mate.com - Un alivio a un click de distancia_360p.mp4"
-# video1 = Video(RC8, 100, 1)
-# getFrames(ruta, saltos, escala = 100 ,fname = "Default"):
-
-# print(video1.get_number_frames())
-# print(video1.get_fps())
-# print(video1.get_path())
-# print(video1.get_video_name())
-# print(video1.get_frames_path())
-# print(video1.get_video_cap())
-# saltos acerlo proporcional al numero de frames
-
-RC1 = "./video2/Data Health.mp4"
-RC2 = "./video2/y2mate.com - Closet Cleanup_360p.mp4.webm"
-RC3 = "./video2/y2mate.com - Estrategia Digital MBA UC examen_360p.mp4"
-RC4 = "./video2/y2mate.com - MBAUC  Q22021  Estrategia Digital  Grow  Invest_360p.mp4"
-RC5 = "./video2/y2mate.com - Pitch Lifetech_360p.mp4"
-RC6 = "./video2/y2mate.com - PLATAFOMRA DE SEGUROSEST DIGITAL_360p.mp4"
-RC7 = "./video2/y2mate.com - Presentacion   TRADE NOW_360p.mp4.webm"
-RC8 = "./video2/y2mate.com - Un alivio a un click de distancia_360p.mp4"
-RC9 = "./video2/y2mate.com - VESKI_360p.mp4"
-RC10 = "./video2/y2mate.com - Almacén Digital_360p.mp4"   # PROBLEMAS ?
-
-string = "http://google.com"
-
-string = "https://youtu.be/5GJWxDKyk3A" 
-string = "https://youtu.be/1KmlriQpkXs"  # 1 minuto y medio
-directorio = "C:/Users/FrancoPalma/Desktop/PROTOTIPO/T/Billie Eilish - Happier Than Ever (Official Music Video).mp4"
-
-inicio = time.time()
-video1 = Video(string, 100, 1, False)
-video1.clean_frames()
-video1.set_data()
-video1.set_slides() 
-video1.set_transcription()
-
-
-print(video1.data)
-print(video1.slides)
-print(video1.transcription)
-# ploteo(video1.video_name , video1.data) # grafica
-fin = time.time()
-print("TIME : %d [seg]" % round(fin-inicio, 2)) 
-exit(1)
-
-print( "getqua")
-print( getqua(video1.frames[0], video1.frames[1], me = 1) )
-print( getqua(video1.frames[1], video1.frames[2], me = 1) )
-
-fold0 = "C:/Users/FrancoPalma/Desktop/PROTOTIPO/T/F_Billie Eilish - Happier Than Ever (Official Music Video)/0.jpg"
-fold1 = "C:/Users/FrancoPalma/Desktop/PROTOTIPO/T/F_Billie Eilish - Happier Than Ever (Official Music Video)/23.jpg"
-fold2 = "C:/Users/FrancoPalma/Desktop/PROTOTIPO/T/F_Billie Eilish - Happier Than Ever (Official Music Video)/46.jpg"
-
-print( getqua(fold0, fold1, me = 1) )
-print( getqua(fold1, fold2, me = 1) )
-# pos = [2,5,6]
-# video1.set_slides(pos)
-
-# video1 = Video(RC1, 100, 1)
-# video2 = Video(RC2, 100, 1)
-# video3 = Video(RC3, 100, 1)
-# video4 = Video(RC4, 100, 1)
-# video5 = Video(RC5, 100, 1)
-# video6 = Video(RC6, 100, 1)
-# video7 = Video(RC7, 100, 1)
-# video8 = Video(RC8, 100, 1)
-# video9 = Video(RC9, 100, 1)
-# video10 = Video(RC10, 100, 1)
-
-# print(video1.get_fps())
-# print(video2.get_fps())
-# print(video3.get_fps())
-# print(video4.get_fps())
-# print(video5.get_fps())
-# print(video6.get_fps())
-# print(video7.get_fps())
-# print(video8.get_fps())
-# print(video9.get_fps())
-# print(video10.get_fps())
-
-
 
 
 

@@ -462,7 +462,7 @@ def write_json(data, filename= "default"):
     with  open(filename, "w") as f:
         json.dump(data, f, indent=4)
 
-def get_transcription(f_ruta, data = [], ocr = 1): 
+def get_transcription(f_ruta, data = [], local = True, ocr = 1): 
     """ Funcion que itera sobre los frames/imagenes transcribiendolas usando algun OCR (easyOCR o teseract) 
     1 = easyOCR
     2 = teseract 
@@ -470,6 +470,7 @@ def get_transcription(f_ruta, data = [], ocr = 1):
     Input:
         f_ruta (str): ruta frames
         data (list): array con posiciones, usadas como filtro en la seleccion de imagenes
+        local (boolean):
     Output:
         transcription (str o list): texto recopilado de cada frame unido en una sola estuctura
     """
@@ -498,7 +499,8 @@ def get_transcription(f_ruta, data = [], ocr = 1):
     if (ocr == 1):
         filename = "order"
         transcription = json
-        write_json(json, filename)
+        if(not local):
+            write_json(json, filename)
     return transcription
 
 def isame(rute1, rute2, dbugg = False):  
