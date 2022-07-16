@@ -53,7 +53,7 @@ def download_video(url):
     except:
         return False, ""
 
-def getqua(rute1, rute2, me = 1): 
+def getqua(rute1, rute2, rgb = False, me = 1): 
     """ Funcion que compara dos frames con la metrica que indica el parametro "me"
     -------------------------------------------------------
     Input:
@@ -66,10 +66,15 @@ def getqua(rute1, rute2, me = 1):
     # COlOR
     # im1 = cv2.imread(rute1)
     # im2 = cv2.imread(rute2)
+    color = 0 # B/W
+    multich = False
+    if(rgb):
+        color = 1 # RGB
+        multich  = True
     #BLANCO Y NEGRO
     if(isinstance(rute1, str)):
-        im1 = cv2.imread(rute1, 0)
-        im2 = cv2.imread(rute2, 0)
+        im1 = cv2.imread(rute1, color)
+        im2 = cv2.imread(rute2, color)
     else:
         im1 = rute1
         im2 = rute2
@@ -88,16 +93,16 @@ def getqua(rute1, rute2, me = 1):
 
     if(me == 1 ):
         # Aplicando metrica SSIM TODO: elegir un tipo RGB o Blanco y negro, sino habra diferencia entre local y no local
-        try:
-            ssimV = ssim(im1F, im2F, multichannel=True, data_range=im2F.max() - im2F.min())
-        except:
-            ssimV = ssim(im1F, im2F, multichannel=False, data_range=im2F.max() - im2F.min())
+        # try:
+        ssimV = ssim(im1F, im2F, multichannel=multich, data_range=im2F.max() - im2F.min())
+        # except:
+        #     ssimV = ssim(im1F, im2F, multichannel=False, data_range=im2F.max() - im2F.min())
         return ssimV
     elif(me == 2):
         dif = np.sum(im1 != im2)
         return dif/pixT
 
-def getdata(f_ruta): 
+def getdata(f_ruta, rgb = False): 
     """ Funcion que usando getqua() en frames ordenados entrega un array con los valores evaluados de frames contiguos
     -------------------------------------------------------
     Input:
@@ -112,7 +117,7 @@ def getdata(f_ruta):
         for index, frame in enumerate(f_ruta):
             if(index != 0):
                 rute2 = frame
-                qua =  getqua(rute1, rute2, 1) # SSIM
+                qua =  getqua(rute1, rute2, rgb, 1) # SSIM
                 data = np.append(data, qua) 
                 rute1 = rute2
             else:
@@ -129,10 +134,10 @@ def getdata(f_ruta):
             if(index != 0):
                 rute1 = f_ruta+ str(anterior)+'.jpg'
                 rute2 = f_ruta+ str(i)+'.jpg'
-                qua =  getqua(rute1, rute2, 1) # SSIM
+                qua =  getqua(rute1, rute2, rgb, 1) # SSIM
                 # TODO anotar esto en documento
                 # TEST grafico
-                # qua =  getqua(rute1, rute2, 2) 
+                # qua =  getqua(rute1, rute2, rgb, 2) 
                 # if (qua > 0.9):
                 # 	qua = 1
                 data = np.append(data, qua) 
@@ -225,7 +230,7 @@ def lemat(text):
             ret = ret + " " + word.lemma    
     return ret
 
-def easy(ruta, detail, debugg = False):
+def easy(ruta, detail, rgb = False, debugg = False):
     """ Funcion que :
     - Obtiene una transcripcion de una imagen y las posiciones de cada bloque de texto
     - Dadas las posiciones calcula las distancias entre ellos
@@ -246,9 +251,12 @@ def easy(ruta, detail, debugg = False):
         ref_pos = []
         trans_l = []
         c = 0
+        color = 0 # B/W
+        if(rgb):
+            color = 1 # RGB
         if(debugg):
             if(isinstance(ruta, str)):
-                im = cv2.imread(ruta, 0)
+                im = cv2.imread(ruta, color)
             else:
                 im = ruta
             # Create figure and axes
@@ -462,7 +470,7 @@ def write_json(data, filename= "default"):
     with  open(filename, "w") as f:
         json.dump(data, f, indent=4)
 
-def get_transcription(f_ruta, data = [], local = True, ocr = 1): 
+def get_transcription(f_ruta, data = [], rgb = False, local = True, ocr = 1): 
     """ Funcion que itera sobre los frames/imagenes transcribiendolas usando algun OCR (easyOCR o teseract) 
     1 = easyOCR
     2 = teseract 
@@ -492,7 +500,7 @@ def get_transcription(f_ruta, data = [], local = True, ocr = 1):
             else:
                 rute = frame
             if (ocr == 1):
-                json.append(easy(rute, 1))
+                json.append(easy(rute, 1, rgb))
             # elif (ocr == 2):
             #     transcription = transcription + tese(rute, False) + "\n\n"
 
@@ -503,7 +511,7 @@ def get_transcription(f_ruta, data = [], local = True, ocr = 1):
             write_json(json, filename)
     return transcription
 
-def isame(rute1, rute2, dbugg = False):  
+def isame(rute1, rute2, rgb = False, dbugg = False):  
     """ Compara dos frames usando el porcentaje de pixeles que difieren como tambien el valor para SSIM entre ellos
     -------------------------------------------------------
     Input:
@@ -517,9 +525,14 @@ def isame(rute1, rute2, dbugg = False):
     # im1 = cv2.imread(rute1)
     # im2 = cv2.imread(rute2)
     #BLANCO Y NEGRO
+    color = 0 # B/W
+    multich = False
+    if(rgb):
+        color = 1 # RGB
+        multich  = True
     if(isinstance(rute1, str)):
-        im1 = cv2.imread(rute1, 0)
-        im2 = cv2.imread(rute2, 0)
+        im1 = cv2.imread(rute1, color)
+        im2 = cv2.imread(rute2, color)
     else:
         im1 = rute1
         im2 = rute2
@@ -527,10 +540,10 @@ def isame(rute1, rute2, dbugg = False):
     im2F = img_as_float(im2)
     
     # Aplicando metrica SSIM
-    try:
-        ssimV = ssim(im1F, im2F, multichannel=True, data_range=im2F.max() - im2F.min())
-    except:
-        ssimV = ssim(im1F, im2F, multichannel=False, data_range=im2F.max() - im2F.min())
+    # try:
+    ssimV = ssim(im1F, im2F, multichannel=multich, data_range=im2F.max() - im2F.min())
+    # except:
+    #     ssimV = ssim(im1F, im2F, multichannel=False, data_range=im2F.max() - im2F.min())
     dif = np.sum(im1 != im2)
 
     # Dimensiones imagen
@@ -561,7 +574,7 @@ def isame(rute1, rute2, dbugg = False):
         plt.show(block=True)
     return state
 
-def clean(f_ruta): 
+def clean(f_ruta, rgb = False): 
     """ Funcion que usando isame() filtra las imagenes que son consideradas iguales (dejando solo una de ellas)
     para el caso de no estar local : se elimina el frame de la ruta 
     caso local: se crea una nueva lista con los frames correspondientes y se retorna   
@@ -586,7 +599,7 @@ def clean(f_ruta):
         for a, frame in enumerate(Frames):
             if(a != 0):
                 rute2 = frame
-                if(not isame(rute1, rute2)): # si son iguales no se hace nada, si son distintos se guarda el primero
+                if(not isame(rute1, rute2, rgb)): # si son iguales no se hace nada, si son distintos se guarda el primero
                     Frames_R.append(rute1)
                 rute1 = rute2
             else :
@@ -600,7 +613,7 @@ def clean(f_ruta):
             if(a != 0):
                 rute1 = f_ruta+ str(anterior)+'.jpg'
                 rute2 = f_ruta+ str(i)+'.jpg'
-                if(isame(rute1, rute2)):  # si son iguales se elimina el primero, si son distintos no se hace nada
+                if(isame(rute1, rute2, rgb)):  # si son iguales se elimina el primero, si son distintos no se hace nada
                     os.remove(rute1)
             anterior = i
     return Frames

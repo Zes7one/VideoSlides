@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setup(
     name="videoslides",
-    version='0.0.1',
+    version='0.0.2',
     description='Package made to obtain a text transcription from a video, with a flow from video to frames to structured frames to transcription in a json file ',
     long_description=long_description,
     long_description_content_type="text/markdown",
