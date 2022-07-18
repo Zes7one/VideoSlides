@@ -92,7 +92,6 @@ def getqua(rute1, rute2, rgb = False, me = 1):
     pixT = height *  width
 
     if(me == 1 ):
-        # Aplicando metrica SSIM TODO: elegir un tipo RGB o Blanco y negro, sino habra diferencia entre local y no local
         # try:
         ssimV = ssim(im1F, im2F, multichannel=multich, data_range=im2F.max() - im2F.min())
         # except:
@@ -230,7 +229,7 @@ def lemat(text):
             ret = ret + " " + word.lemma    
     return ret
 
-def easy(ruta, detail, rgb = False, debugg = False):
+def easy(reader, ruta, detail, rgb = False, debugg = False):
     """ Funcion que :
     - Obtiene una transcripcion de una imagen y las posiciones de cada bloque de texto
     - Dadas las posiciones calcula las distancias entre ellos
@@ -244,7 +243,7 @@ def easy(ruta, detail, rgb = False, debugg = False):
         order (array): lista con la transcripcion estructurada 
     """
     
-    reader = easyocr.Reader(['en'], gpu=False) # this needs to run only once to load the model into memory
+    
     result = reader.readtext(ruta, detail = detail)
     if (detail == 1):
         trans = ""
@@ -443,8 +442,11 @@ def clustering(array2):
     ret_array2 = [i for i in ret_array2 if len(i)>0]
     return(ret_array2)
 
-def last_ones(array): 
-    """ Obtiene los ultimos elementos de las listas dentro de array
+def select(array, frames, type = 0, rgb = False): 
+    """ Obtiene un frame por cada sub array dentro de array
+    type
+    0 : Obtiene los ultimos elementos 
+    1 : Obtiene los que posean mas informacion.
     -------------------------------------------------------
     Input:
         array (list): array de arrays
@@ -453,9 +455,54 @@ def last_ones(array):
     """
     largo = len(array)
     retorno =  []
-    for i in range(largo):
-        retorno.append(array[i][-1])
+    if(type == 0):
+        for i in range(largo):
+            retorno.append(array[i][-1])
+    else:
+        reader = easyocr.Reader(['en'], gpu=False) # this needs to run only once to load the model into memory
+        retorno = get_trans_slide(reader, array, frames, rgb)
     return retorno
+
+def get_trans_slide(reader, array, frames, rgb = False):
+    """ Obtiene una lista de string, con las transcripciones de los frames indicados en array
+    -------------------------------------------------------
+    Input:
+        array (list): array con las posiciones de los frames de una slide
+    Output:
+        retorno (array) 
+    """
+    color = 0 # B/W
+    if(rgb):
+        color = 1 # RGB
+    if(isinstance(frames, str)):
+        Frames = ls(ruta = frames)
+        Frames.sort()
+        Frames = list(map(addJ ,Frames))
+        # f_ruta = f_ruta+"/"
+        # print("Leer data de frames -> dejarla en una lista de transcripciones -> cual tenga mayor numero de palabas es el seleccionado (comparar el numero de palabras coinidentes)")
+    # else:
+    list_ret = []
+    # aux = []
+    for index, i in enumerate(array):
+        bigger = []
+        pos = 0
+        c_aux = 0
+        for jndex, j in enumerate(frames):
+            if(jndex in i):
+                if(isinstance(frames, str)):
+                    # leer frame
+                    rute = frames+Frames[jndex]
+                    j = cv2.imread(rute, color)
+                result = reader.readtext(j, detail = 0)
+                result = (" ").join(result)
+                result = result.split()
+                if(len(result) > len(bigger)):
+                    bigger = result
+                    pos = i[c_aux]
+                c_aux += 1 
+        # aux.append((" ").join(bigger))
+        list_ret.append(pos)
+    return(list_ret)
 
 def write_json(data, filename= "default"): 
     """ Funcion que escribe data en un archivo formato json
@@ -470,13 +517,13 @@ def write_json(data, filename= "default"):
     with  open(filename, "w") as f:
         json.dump(data, f, indent=4)
 
-def get_transcription(f_ruta, data = [], rgb = False, local = True, ocr = 1): 
+def get_transcription(vname, f_ruta, data = [], rgb = False, local = True, ocr = 1): 
     """ Funcion que itera sobre los frames/imagenes transcribiendolas usando algun OCR (easyOCR o teseract) 
     1 = easyOCR
     2 = teseract 
     -------------------------------------------------------
     Input:
-        f_ruta (str): ruta frames
+        f_ruta (str): ruta frames o frames (caso runtime)
         data (list): array con posiciones, usadas como filtro en la seleccion de imagenes
         local (boolean):
     Output:
@@ -500,23 +547,28 @@ def get_transcription(f_ruta, data = [], rgb = False, local = True, ocr = 1):
             else:
                 rute = frame
             if (ocr == 1):
-                json.append(easy(rute, 1, rgb))
+                reader = easyocr.Reader(['en'], gpu=False) # this needs to run only once to load the model into memory
+                json.append(easy(reader, rute, 1, rgb))
             # elif (ocr == 2):
             #     transcription = transcription + tese(rute, False) + "\n\n"
 
     if (ocr == 1):
-        filename = "order"
+        # filename = "order"
+        filename = vname
         transcription = json
         if(not local):
             write_json(json, filename)
     return transcription
 
-def isame(rute1, rute2, rgb = False, dbugg = False):  
+def isame(rute1, rute2, rgb = False, pix_lim = 0.001, ssimv_lim = 0.999, dbugg = False):  
     """ Compara dos frames usando el porcentaje de pixeles que difieren como tambien el valor para SSIM entre ellos
     -------------------------------------------------------
     Input:
         rute1 (str): ruta de primer frame
         rute2 (str): ruta de segundo frame
+        rgb (boolean): indicador de uso de 3 bandas de color (RGB, True) o solo una (B/W, False)
+        pix_lim (float): indicador de limite para filtrar imagenes segun metrica de porcentaje de pixeles cambiantes
+        ssimv_lim (float): indicador de limite para filtrar imagenes segun metrica SSIM
         dbugg (boolean): True en caso de querer visualizar los frames
     Output:
         state (boolean): indicador que indica si son considerados suficientemente similares 
@@ -553,12 +605,14 @@ def isame(rute1, rute2, rgb = False, dbugg = False):
     pix_num = height * width * 3
 
     state = False
-    if ( dif/pix_num < 0.001):
+    # pix_lim = 0.001
+    if ( dif/pix_num < pix_lim):
         #  Son escencial- la misma
         if (dbugg):
             print(" ----------------- dif %f ----------------- " % float(dif/pix_num))		
         state  = True
-    elif(ssimV>0.999):	
+    # ssimv_lim = 0.999
+    elif(ssimV>ssimv_lim):	
         # Son escencial- la misma
         if (dbugg):
             print(" ----------------- ssimV %f ----------------- " % ssimV)		
@@ -574,7 +628,7 @@ def isame(rute1, rute2, rgb = False, dbugg = False):
         plt.show(block=True)
     return state
 
-def clean(f_ruta, rgb = False): 
+def clean(f_ruta, rgb = False, pix_lim = 0.001, ssimv_lim = 0.999): 
     """ Funcion que usando isame() filtra las imagenes que son consideradas iguales (dejando solo una de ellas)
     para el caso de no estar local : se elimina el frame de la ruta 
     caso local: se crea una nueva lista con los frames correspondientes y se retorna   
@@ -599,7 +653,7 @@ def clean(f_ruta, rgb = False):
         for a, frame in enumerate(Frames):
             if(a != 0):
                 rute2 = frame
-                if(not isame(rute1, rute2, rgb)): # si son iguales no se hace nada, si son distintos se guarda el primero
+                if(not isame(rute1, rute2, rgb, pix_lim, ssimv_lim)): # si son iguales no se hace nada, si son distintos se guarda el primero
                     Frames_R.append(rute1)
                 rute1 = rute2
             else :
@@ -613,7 +667,7 @@ def clean(f_ruta, rgb = False):
             if(a != 0):
                 rute1 = f_ruta+ str(anterior)+'.jpg'
                 rute2 = f_ruta+ str(i)+'.jpg'
-                if(isame(rute1, rute2, rgb)):  # si son iguales se elimina el primero, si son distintos no se hace nada
+                if(isame(rute1, rute2, rgb, pix_lim, ssimv_lim)):  # si son iguales se elimina el primero, si son distintos no se hace nada
                     os.remove(rute1)
             anterior = i
     return Frames
@@ -651,3 +705,47 @@ def classic(data, nombre):
     plt.title(f"{nombre} ({number_of_diapos})")
     plt.show()
 
+def clean_transc(transc):
+    """ Desde una transcripcion en formato de lista se eliminan redundancias y se retorna la nueva lista
+    -------------------------------------------------------
+    Input:
+        transc (list):  array de arrays con texto transcrito
+    Output:
+        transc 
+    """
+    if(isinstance(transc, str)):
+        # es desde un json
+        f = open (transc, "r")
+        transc = json.loads(f.read())
+
+    # crear lista nueva con un string por posicion
+    new = []
+    for index, i in enumerate(transc):
+        str_list = str(i).replace("[", "").replace("]", "").replace("'", "").replace(",", "").lower()
+        # flatten = list(num for sublist in i for num in sublist)
+        new.append(str_list)
+
+        i = str_list
+        if index == 0:
+            sent1 = i
+        else:
+            sent2 = i
+            #comparar ...
+            sent2 = sent2.split()
+            # x.replace(" ", "") for i in list 
+            print(sent2)
+            if(len(sent2) == 0):
+                continue
+            # sent1 = sent1.split(" ") 
+            counter = 0
+            for kndex, k in enumerate(sent2):
+                if (k in sent1):
+                    counter+=1
+            print(counter/len(sent2))
+            sent1 = i
+    
+    # for index, i in enumerate(new):
+    # eliminar este for, agregando este conteo al anterior
+
+
+    # comparar textos

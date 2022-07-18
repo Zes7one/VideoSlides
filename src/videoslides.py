@@ -5,16 +5,17 @@ import cv2
 import functions as fc
 
 class Video:
-    def __init__(self, path, scale = 100 , saltos = 1, rgb = False, runtime = True): # scale:percent of original size
+    def __init__(self, path, scale = 100 , saltos = 1, rgb = False, runtime = True, pix_lim = 0.001, ssimv_lim = 0.999): # scale:percent of original size
         """ Clase para manejar el video, frames y transcripcion 
         path (str): link del video o a la ruta local del archivo mp4
         scale (int): numero que indica de que escala del tamaño real de los frames se desean extraer [0,100]
         saltos (int): numero de saltos periodicos entre lecturas de frames
-        runtime (boolean): indicador para usar la data de frames de forma persistente (archivos) - False o en ejecucion (objetos y listas) -> True
+        runtime (boolean): False -> para usar la data de frames de forma persistente (archivos) o True -> en ejecucion (objetos y listas) 
         """
         link = True
         self.runtime = runtime
         self.rgb = rgb
+        self.pix_lim, self.ssimv_lim = pix_lim, ssimv_lim
         # ------------ Video de Youtube ------------
         if (validators.url(path)):
             status, real_VideoName = fc.download_video(path)
@@ -46,14 +47,15 @@ class Video:
         # ---------------------------------------------------------------
         
         # ------------ Se elimina el video en caso de runtime y link ------------
-        if(runtime and link): 
-            # TODO Se borra la carpeta con los frames -> solo se puede cuando se deje de usar el vidcap
-            string = """
-            se mantiene una lista de imagenes = frames
-            se mantiene una vidcap = video
-            """ 
-            # os.remove(self.path)
-            warnings.warn(string)
+        # if(runtime and link): 
+        #     # TODO Se borra la carpeta con los frames -> solo se puede cuando se deje de usar el vidcap
+        #     string = """
+        #     Manejo de data en Runtime
+        #     se mantiene una lista de imagenes = frames
+        #     se mantiene una vidcap = video
+        #     """ 
+        #     # os.remove(self.path)
+        #     warnings.warn(string)
         # ---------------------------------------------------------------------
 
         self.num_frames = int(vidcap.get(cv2.CAP_PROP_FRAME_COUNT))
@@ -61,7 +63,6 @@ class Video:
         # ------------ Se lee un frame y se obtiene las dimensiones ------------
         success,image = vidcap.read()	
         if(not rgb):
-            # TODO revisar cambios necesarios para implementar solo escala de grises ( o dar la opcion de elegir) -> agregar comparacion al documento
             image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) 
         if(not success):
             raise Exception("Problemas en la captura del video: video corrompido o formato incorrecto")
@@ -88,7 +89,6 @@ class Video:
                     cv2.imwrite(self.frames_path+"%d.jpg" % count, resized)     # save frame as JPEG file  
             success,image = vidcap.read()
             if(not rgb):
-                # TODO revisar cambios necesarios para implementar solo escala de grises ( o dar la opcion de elegir)
                 image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) 
             count += 1
 
@@ -120,21 +120,22 @@ class Video:
     def set_data(self): # se setea la data segun este usandose de forma runtime o no
         """ Funcion que usando getqua() sobre frames ordenados entrega un array con los valores evaluados de frames contiguos
         -------------------------------------------------------
-        Input: TODO
-            posiciones (array): lista con posiciones de los frames elegios para conformar el conjunto final de diapositivas
+        Input:
+            No aplica
         Output:
             No aplica
         """
-        if(self.runtime):
-            self.data = fc.getdata(self.frames, self.rgb) # caso runtime 
-        else:
-            self.data = fc.getdata(self.frames_path, self.rgb) # caso NO runtime
+        self.data = fc.getdata(self.frames, self.rgb) # ambos casos cubiertos
+        # if(self.runtime):
+        #     self.data = fc.getdata(self.frames, self.rgb) # caso runtime 
+        # else:
+        #     self.data = fc.getdata(self.frames_path, self.rgb) # caso NO runtime
 
     def set_slides(self, posiciones = None):
         """ divide y obtiene los frames que contienen la mayor parte de la informacion de cada slide
         -------------------------------------------------------
         Input:
-            posiciones (array): lista con posiciones de los frames elegios para conformar el conjunto final de diapositivas
+            posiciones (array): lista con posiciones de los frames elegios para conformar el conjunto final de diapositivas (opcional)
         Output:
             No aplica
         """
@@ -163,7 +164,7 @@ class Video:
                     array.append(i)
                     
             sets.append(array)
-            self.slides = fc.last_ones(sets) # Se seleccionan los ultimos frames de cada conjunto 
+            self.slides = fc.select(sets, self.frames, 1, self.rgb) # 0 -> Se seleccionan los ultimos frames de cada conjunto 
 
     def set_transcription(self):
         if (len(self.slides) == 0):
@@ -171,16 +172,31 @@ class Video:
             msg = "No se tienen las slides, se ejecuta automaticamente el metodo set_slides() para setearla en el atributo slides"
             warnings.warn(f"Warning........... {msg}")
 
+        self.transcription = fc.get_transcription(self.video_name, self.frames, self.slides, self.rgb, self.runtime) # los dos casos cubiertos 
+        # if(self.runtime):
+        #     self.transcription = fc.get_transcription(self.video_name, self.frames, self.slides, self.rgb, self.runtime) # caso runtime 
+        # else:
+        #     self.transcription = fc.get_transcription(self.video_name, self.frames_path, self.slides, self.rgb, self.runtime) # caso NO runtime
+
+    def clean_frames(self): 
         if(self.runtime):
-            self.transcription = fc.get_transcription(self.frames, self.slides, self.rgb, self.runtime) # caso runtime 
+            self.frames = fc.clean(self.frames, self.rgb, self.pix_lim, self.ssimv_lim)
         else:
-            self.transcription = fc.get_transcription(self.frames_path, self.slides, self.rgb, self.runtime) # caso NO runtime
-
-    def clean_frames(self): # TODO dar libertad de los rangos a los cuales se desea filtrar
-        if(self.runtime):
-            self.frames = fc.clean(self.frames, self.rgb)
-        else:
-            fc.clean(self.frames_path, self.rgb)
+            fc.clean(self.frames_path, self.rgb, self.pix_lim, self.ssimv_lim)
 
 
 
+
+        # TODO: ARREGLAR FOTO WSP
+        # TODO. REVISAR SI EXISTE ALGUNA FORMA DE ENTREGAR MAYOR VALOR A LA ESTRUCTURACION ( ETIQUETAS ? : TITTLE, COMMENT, NAMES, NUMBER OR DATES)
+        # TODO: REVISAR FORMAS DE OBTENER CONTEXTO DE INFO EN UNA LAMINA (QUIZAS FILTRAR Y OMITIR INFORMACION NO RELEVANTE)
+        # TODO: N-GRAMA PARA LA CORRECCION -> REVISAR QUE PALABRAS SE REPITEN MAS Y QUIZAR HACER UNA ANALISIS ESTADISTICO CON ESTO (UN PLUS (?))
+        # TODO: MENCIONAR QUE SE PUEDE MEJORAR EL CALCULO DE DISTANCIA ENTRE CUADRADOS DE TEXTO -> MEJORAR ESTRUCTURACION EN CASO DE TEXTO EN DIAGONAL
+        # TODO: REVISAR SI PUEDO ELIMINAR REDUNDACIA PERO AHORA DESDE LAS TRANSCRIPCION
+        # TODO: MEJORAR FUNCION PARA ELEGIR FRAMES DESDE SLIDE (actual es last_one)
+
+        # DONE: REVISAR QUE TAN UTIL SERIA EL RTF (no mucho, se puede agregar formato, y quizas imagenes, -> buscar valor o uso de los RTF)
+        # DOING: AVANZAR DOCUMENTO ->
+        # DONE dar libertad de los rangos a los cuales se desea filtrar
+        # DONE: LEMATIZACION Y  TOKENIZACION
+        # DONE revisar cambios necesarios para implementar solo escala de grises ( o dar la opcion de elegir) -> agregar comparacion al documento
