@@ -5,7 +5,7 @@ import cv2
 import functions as fc
 
 class Video:
-    def __init__(self, path, scale = 100 , saltos = 1, rgb = False, runtime = True, pix_lim = 0.001, ssimv_lim = 0.999): # scale:percent of original size
+    def __init__(self, path, scale = 100 , saltos = 1, rgb = False, runtime = True, lematiz = False, pix_lim = 0.001, ssimv_lim = 0.999): # scale:percent of original size
         """ Clase para manejar el video, frames y transcripcion 
         path (str): link del video o a la ruta local del archivo mp4
         scale (int): numero que indica de que escala del tamaño real de los frames se desean extraer [0,100]
@@ -16,6 +16,7 @@ class Video:
         self.runtime = runtime
         self.rgb = rgb
         self.pix_lim, self.ssimv_lim = pix_lim, ssimv_lim
+        self.lematiz = lematiz
         # ------------ Video de Youtube ------------
         if (validators.url(path)):
             status, real_VideoName = fc.download_video(path)
@@ -172,7 +173,7 @@ class Video:
             msg = "No se tienen las slides, se ejecuta automaticamente el metodo set_slides() para setearla en el atributo slides"
             warnings.warn(f"Warning........... {msg}")
 
-        self.transcription = fc.get_transcription(self.video_name, self.frames, self.slides, self.rgb, self.runtime) # los dos casos cubiertos 
+        self.transcription = fc.get_transcription(self.video_name, self.frames, self.slides, self.rgb, self.runtime, self.lematiz) # los dos casos cubiertos 
         # if(self.runtime):
         #     self.transcription = fc.get_transcription(self.video_name, self.frames, self.slides, self.rgb, self.runtime) # caso runtime 
         # else:
@@ -187,14 +188,17 @@ class Video:
 
 
 
-        # TODO: ARREGLAR FOTO WSP
         # TODO. REVISAR SI EXISTE ALGUNA FORMA DE ENTREGAR MAYOR VALOR A LA ESTRUCTURACION ( ETIQUETAS ? : TITTLE, COMMENT, NAMES, NUMBER OR DATES)
         # TODO: REVISAR FORMAS DE OBTENER CONTEXTO DE INFO EN UNA LAMINA (QUIZAS FILTRAR Y OMITIR INFORMACION NO RELEVANTE)
         # TODO: N-GRAMA PARA LA CORRECCION -> REVISAR QUE PALABRAS SE REPITEN MAS Y QUIZAR HACER UNA ANALISIS ESTADISTICO CON ESTO (UN PLUS (?))
         # TODO: MENCIONAR QUE SE PUEDE MEJORAR EL CALCULO DE DISTANCIA ENTRE CUADRADOS DE TEXTO -> MEJORAR ESTRUCTURACION EN CASO DE TEXTO EN DIAGONAL
-        # TODO: REVISAR SI PUEDO ELIMINAR REDUNDACIA PERO AHORA DESDE LAS TRANSCRIPCION
-        # TODO: MEJORAR FUNCION PARA ELEGIR FRAMES DESDE SLIDE (actual es last_one)
 
+        # TODO : agregar la limpieza segun el texto a los metodos de la clase
+        # TODO : dejar como parametro editable el limite para la limpieza por texto
+        # TODO : Hacer pruebas -> hacer funcionar el codigo con GPU
+        # DONE: eleccion de lematizar
+        # DONE: REVISAR SI PUEDO ELIMINAR REDUNDACIA PERO AHORA DESDE LAS TRANSCRIPCION
+        # DONE: MEJORAR FUNCION PARA ELEGIR FRAMES DESDE SLIDE (actual es last_one) -> AGREGAR A DOCUMENTO
         # DONE: REVISAR QUE TAN UTIL SERIA EL RTF (no mucho, se puede agregar formato, y quizas imagenes, -> buscar valor o uso de los RTF)
         # DOING: AVANZAR DOCUMENTO ->
         # DONE dar libertad de los rangos a los cuales se desea filtrar

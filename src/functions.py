@@ -229,7 +229,7 @@ def lemat(text):
             ret = ret + " " + word.lemma    
     return ret
 
-def easy(reader, ruta, detail, rgb = False, debugg = False):
+def easy(reader, ruta, detail, rgb = False, lematiz = False, debugg = False):
     """ Funcion que :
     - Obtiene una transcripcion de una imagen y las posiciones de cada bloque de texto
     - Dadas las posiciones calcula las distancias entre ellos
@@ -242,7 +242,7 @@ def easy(reader, ruta, detail, rgb = False, debugg = False):
     Output:
         order (array): lista con la transcripcion estructurada 
     """
-    
+    lematizar = lematiz
     
     result = reader.readtext(ruta, detail = detail)
     if (detail == 1):
@@ -269,11 +269,13 @@ def easy(reader, ruta, detail, rgb = False, debugg = False):
             aux = []
             count = 0
             trans = trans + t + "\n"
+            if (lematizar):
             # -------------------- SE APLICA LA LEMATIZACION EN LAS TRANSCRIPCIONES --------------------
-            trans_l.append(lemat(t))
+                trans_l.append(lemat(t))
             # ------------------------------------------------------------------------------------------
+            else:
             # -------------------- SIN APLICARLA  --------------------
-            # trans_l.append(t)
+                trans_l.append(t)
             # --------------------------------------------------------
             for  pos, text, accu in result :			
                 if (c < count): 
@@ -471,27 +473,31 @@ def get_trans_slide(reader, array, frames, rgb = False):
     Output:
         retorno (array) 
     """
+    debugg = False
     color = 0 # B/W
+    remote = True
     if(rgb):
         color = 1 # RGB
     if(isinstance(frames, str)):
+        f_ruta = frames
         Frames = ls(ruta = frames)
         Frames.sort()
-        Frames = list(map(addJ ,Frames))
-        # f_ruta = f_ruta+"/"
+        frames = list(map(addJ ,Frames))
+        # frames = Frames
+        remote = False
+
         # print("Leer data de frames -> dejarla en una lista de transcripciones -> cual tenga mayor numero de palabas es el seleccionado (comparar el numero de palabras coinidentes)")
     # else:
     list_ret = []
-    # aux = []
     for index, i in enumerate(array):
         bigger = []
         pos = 0
         c_aux = 0
         for jndex, j in enumerate(frames):
             if(jndex in i):
-                if(isinstance(frames, str)):
+                if(not remote):
                     # leer frame
-                    rute = frames+Frames[jndex]
+                    rute = f_ruta+frames[jndex]
                     j = cv2.imread(rute, color)
                 result = reader.readtext(j, detail = 0)
                 result = (" ").join(result)
@@ -500,9 +506,11 @@ def get_trans_slide(reader, array, frames, rgb = False):
                     bigger = result
                     pos = i[c_aux]
                 c_aux += 1 
-        # aux.append((" ").join(bigger))
         list_ret.append(pos)
+        if(debugg):
+            print(f"{i} -> {pos}")
     return(list_ret)
+
 
 def write_json(data, filename= "default"): 
     """ Funcion que escribe data en un archivo formato json
@@ -517,7 +525,7 @@ def write_json(data, filename= "default"):
     with  open(filename, "w") as f:
         json.dump(data, f, indent=4)
 
-def get_transcription(vname, f_ruta, data = [], rgb = False, local = True, ocr = 1): 
+def get_transcription(vname, f_ruta, data = [], rgb = False, local = True, lematiz = False, ocr = 1): 
     """ Funcion que itera sobre los frames/imagenes transcribiendolas usando algun OCR (easyOCR o teseract) 
     1 = easyOCR
     2 = teseract 
@@ -548,7 +556,7 @@ def get_transcription(vname, f_ruta, data = [], rgb = False, local = True, ocr =
                 rute = frame
             if (ocr == 1):
                 reader = easyocr.Reader(['en'], gpu=False) # this needs to run only once to load the model into memory
-                json.append(easy(reader, rute, 1, rgb))
+                json.append(easy(reader, rute, 1, lematiz, rgb))
             # elif (ocr == 2):
             #     transcription = transcription + tese(rute, False) + "\n\n"
 
@@ -713,39 +721,78 @@ def clean_transc(transc):
     Output:
         transc 
     """
+    debugg = False
+    limite = 0.9
+    runtime = True
+    path = ""
     if(isinstance(transc, str)):
-        # es desde un json
+        runtime = False
+        path = transc.replace(".json", "")
+        # lectura es desde un json
         f = open (transc, "r")
         transc = json.loads(f.read())
 
     # crear lista nueva con un string por posicion
+    dele = [0]* len(transc)
     new = []
+    right = []
+    left = []
     for index, i in enumerate(transc):
         str_list = str(i).replace("[", "").replace("]", "").replace("'", "").replace(",", "").lower()
-        # flatten = list(num for sublist in i for num in sublist)
-        new.append(str_list)
-
         i = str_list
         if index == 0:
             sent1 = i
         else:
             sent2 = i
             #comparar ...
-            sent2 = sent2.split()
-            # x.replace(" ", "") for i in list 
-            print(sent2)
-            if(len(sent2) == 0):
-                continue
-            # sent1 = sent1.split(" ") 
-            counter = 0
-            for kndex, k in enumerate(sent2):
-                if (k in sent1):
-                    counter+=1
-            print(counter/len(sent2))
+            lt_sent2 = sent2.split()
+            lt_sent1 = sent1.split()
+            if(len(lt_sent2) == 0):
+                right.append(0)
+            else:
+                counter = 0.0
+                sent1_a = sent1
+                for kndex, k in enumerate(lt_sent2):
+                    if (f"{k} " in sent1_a or f" {k} " in sent1_a or f" {k}" in sent1_a):
+                        sent1_a = sent1_a.replace(k, "", 1)
+                        counter+=1
+                right.append(counter/len(lt_sent2))
+            
+            if(len(lt_sent1) == 0):
+                left.append(0)
+            else:
+                counter = 0.0
+                sent2_a = sent2
+                for kndex, k in enumerate(lt_sent1):
+                    if (f"{k} " in sent2_a or f" {k} " in sent2_a or f" {k}" in sent2_a):
+                        sent2_a = sent2_a.replace(k, "", 1) # TODO revisar si necesiatre un auxiliar para hacer este replace
+                        counter+=1
+                left.append(counter/len(lt_sent1))
+            
             sent1 = i
+
+    for index, i in enumerate(right):
+        if(right[index] >= limite):
+            if(left[index] >= limite):
+                if(right[index] >= left[index]):
+                    dele[index+1] = 1 # se elimina right
+                else:
+                    dele[index] = 1 # se elimina left
+            else:
+                dele[index+1] = 1 # se elimina right
+        else:
+            if(left[index] >= limite):
+                dele[index] = 1 # se elimina left
+
     
-    # for index, i in enumerate(new):
-    # eliminar este for, agregando este conteo al anterior
+    new = [i for index, i in enumerate(transc) if dele[index] == 0 ]   
 
+    if (debugg):
+        print(f"right -> {[round(i, 2) for i in right]}")
+        print(f"left -> {[round(i, 2) for i in left]}")
+        print(dele)
+        [print(i) for i in new]
 
-    # comparar textos
+    if (not runtime):
+        write_json(new, path)
+    return new
