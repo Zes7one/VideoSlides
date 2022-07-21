@@ -15,6 +15,9 @@ from math import floor
 from skimage import img_as_float
 from skimage.metrics import structural_similarity as ssim
 
+import gc
+import torch
+
 def addJ (name):
     return str(name)+".jpg"
 
@@ -243,8 +246,9 @@ def easy(reader, ruta, detail, rgb = False, lematiz = False, debugg = False):
         order (array): lista con la transcripcion estructurada 
     """
     lematizar = lematiz
-    
+    lim_acc = 0.5
     result = reader.readtext(ruta, detail = detail)
+    result = [i for i in result if i[2] > lim_acc]
     if (detail == 1):
         trans = ""
         ref_pos = []
@@ -368,7 +372,11 @@ def easy(reader, ruta, detail, rgb = False, lematiz = False, debugg = False):
                     else:
                         order[index][jndex][0] = trans_l[j[0]]
             else:
-                order[index][0] = trans_l[i[0]]
+                if(isinstance(i[0], list)):
+                    for jndex, j in enumerate(i[0]):
+                        order[index][0][jndex] = trans_l[j]
+                else:
+                    order[index][0] = trans_l[i[0]]
 
         # --------------------- UNIENDO LOS TEXTOS QUE PERTENECEN AL MISMO PARRAFO ---------------------
         # for index, i in enumerate(order):
@@ -461,7 +469,9 @@ def select(array, frames, type = 0, rgb = False):
         for i in range(largo):
             retorno.append(array[i][-1])
     else:
-        reader = easyocr.Reader(['en'], gpu=False) # this needs to run only once to load the model into memory
+        gc.collect()
+        torch.cuda.empty_cache()
+        reader = easyocr.Reader(['en'], gpu=True) # this needs to run only once to load the model into memory
         retorno = get_trans_slide(reader, array, frames, rgb)
     return retorno
 
@@ -555,7 +565,9 @@ def get_transcription(vname, f_ruta, data = [], rgb = False, local = True, lemat
             else:
                 rute = frame
             if (ocr == 1):
-                reader = easyocr.Reader(['en'], gpu=False) # this needs to run only once to load the model into memory
+                gc.collect()
+                torch.cuda.empty_cache()
+                reader = easyocr.Reader(['en'], gpu=True) # this needs to run only once to load the model into memory
                 json.append(easy(reader, rute, 1, lematiz, rgb))
             # elif (ocr == 2):
             #     transcription = transcription + tese(rute, False) + "\n\n"
@@ -566,6 +578,8 @@ def get_transcription(vname, f_ruta, data = [], rgb = False, local = True, lemat
         transcription = json
         if(not local):
             write_json(json, filename)
+            return filename+".json"
+
     return transcription
 
 def isame(rute1, rute2, rgb = False, pix_lim = 0.001, ssimv_lim = 0.999, dbugg = False):  
@@ -795,4 +809,6 @@ def clean_transc(transc):
 
     if (not runtime):
         write_json(new, path)
+        return path+".json"
+
     return new

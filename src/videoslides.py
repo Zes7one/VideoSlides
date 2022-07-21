@@ -185,6 +185,9 @@ class Video:
         else:
             fc.clean(self.frames_path, self.rgb, self.pix_lim, self.ssimv_lim)
 
+    def clean_transc(self):
+        self.transcription = fc.clean_transc(self.transcription)
+
 
 
 
@@ -195,7 +198,8 @@ class Video:
 
         # TODO : agregar la limpieza segun el texto a los metodos de la clase
         # TODO : dejar como parametro editable el limite para la limpieza por texto
-        # TODO : Hacer pruebas -> hacer funcionar el codigo con GPU
+        # TODO : Hacer pruebas 
+        # DONE: hacer funcionar el codigo con GPU
         # DONE: eleccion de lematizar
         # DONE: REVISAR SI PUEDO ELIMINAR REDUNDACIA PERO AHORA DESDE LAS TRANSCRIPCION
         # DONE: MEJORAR FUNCION PARA ELEGIR FRAMES DESDE SLIDE (actual es last_one) -> AGREGAR A DOCUMENTO
