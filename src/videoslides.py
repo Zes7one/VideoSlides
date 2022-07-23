@@ -5,7 +5,7 @@ import cv2
 import functions as fc
 
 class Video:
-    def __init__(self, path, scale = 100 , saltos = 1, rgb = False, runtime = True, lematiz = False, pix_lim = 0.001, ssimv_lim = 0.999): # scale:percent of original size
+    def __init__(self, path, scale = 100 , saltos = 1, rgb = False, runtime = True, lematiz = False, gpu_use = False, pix_lim = 0.001, ssimv_lim = 0.999): # scale:percent of original size
         """ Clase para manejar el video, frames y transcripcion 
         path (str): link del video o a la ruta local del archivo mp4
         scale (int): numero que indica de que escala del tamaño real de los frames se desean extraer [0,100]
@@ -13,11 +13,13 @@ class Video:
         runtime (boolean): False -> para usar la data de frames de forma persistente (archivos) o True -> en ejecucion (objetos y listas) 
         """
         link = True
-        self.runtime = runtime
         self.rgb = rgb
-        self.pix_lim, self.ssimv_lim = pix_lim, ssimv_lim
+        self.runtime = runtime
         self.lematiz = lematiz
+        self.gpu_use = gpu_use
+        self.pix_lim, self.ssimv_lim = pix_lim, ssimv_lim
         # ------------ Video de Youtube ------------
+        extension = "mp4"
         if (validators.url(path)):
             status, real_VideoName = fc.download_video(path)
             real_VideoName = real_VideoName.replace("|", "")
@@ -25,16 +27,17 @@ class Video:
                 raise Exception("El link entregado no es un video")
             # RutaFolder = os.path.dirname(os.path.abspath(__file__))+"\\"
             RutaFolder = os.path.abspath(os.getcwd())+"\\"
-            self.path = RutaFolder+real_VideoName+".mp4"
+            self.path = RutaFolder+real_VideoName+f".{extension}"
             self.video_name = real_VideoName
         # ------------------------------------------
         # ------------ Video desde directorio ------------
         else:
             link = False
             real_VideoName = path.split("/")[-1] 
+            extension = real_VideoName.split(".")[-1]
             RutaFolder = path.replace(real_VideoName, '')
             self.path = path
-            self.video_name = real_VideoName.replace(".mp4", "") #.replace("y2mate.com", "").replace(" ", "").replace(".", "").replace("-", "")
+            self.video_name = real_VideoName.replace(f".{extension}", "") #.replace("y2mate.com", "").replace(" ", "").replace(".", "").replace("-", "")
         # ------------------------------------------------
             
         # ------------ Se crea carpeta y se captura el video ------------
@@ -43,7 +46,7 @@ class Video:
             self.frames_path = RutaFolder+"F_"+self.video_name+"\\"
             if (not os.path.isdir(self.frames_path)):
                 os.mkdir(self.frames_path)
-        vidcap = cv2.VideoCapture(RutaFolder+self.video_name+".mp4")
+        vidcap = cv2.VideoCapture(RutaFolder+self.video_name+f".{extension}")
         self.video_cap = vidcap
         # ---------------------------------------------------------------
         
@@ -66,7 +69,7 @@ class Video:
         if(not rgb):
             image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) 
         if(not success):
-            raise Exception("Problemas en la captura del video: video corrompido o formato incorrecto")
+            raise Exception("Problemas en la captura del video: video corrupto o formato incorrecto")
         width = int(image.shape[1] * scale / 100)
         height = int(image.shape[0] * scale / 100)
         dim = (width, height)
@@ -165,7 +168,7 @@ class Video:
                     array.append(i)
                     
             sets.append(array)
-            self.slides = fc.select(sets, self.frames, 1, self.rgb) # 0 -> Se seleccionan los ultimos frames de cada conjunto 
+            self.slides = fc.select(sets, self.frames, 1, self.rgb, self.gpu_use) # 0 -> Se seleccionan los ultimos frames de cada conjunto 
 
     def set_transcription(self):
         if (len(self.slides) == 0):
@@ -173,11 +176,7 @@ class Video:
             msg = "No se tienen las slides, se ejecuta automaticamente el metodo set_slides() para setearla en el atributo slides"
             warnings.warn(f"Warning........... {msg}")
 
-        self.transcription = fc.get_transcription(self.video_name, self.frames, self.slides, self.rgb, self.runtime, self.lematiz) # los dos casos cubiertos 
-        # if(self.runtime):
-        #     self.transcription = fc.get_transcription(self.video_name, self.frames, self.slides, self.rgb, self.runtime) # caso runtime 
-        # else:
-        #     self.transcription = fc.get_transcription(self.video_name, self.frames_path, self.slides, self.rgb, self.runtime) # caso NO runtime
+        self.transcription = fc.get_transcription(self.video_name, self.frames, self.slides, self.rgb, self.runtime, self.lematiz, self.gpu_use) # los dos casos cubiertos 
 
     def clean_frames(self): 
         if(self.runtime):
@@ -196,15 +195,13 @@ class Video:
         # TODO: N-GRAMA PARA LA CORRECCION -> REVISAR QUE PALABRAS SE REPITEN MAS Y QUIZAR HACER UNA ANALISIS ESTADISTICO CON ESTO (UN PLUS (?))
         # TODO: MENCIONAR QUE SE PUEDE MEJORAR EL CALCULO DE DISTANCIA ENTRE CUADRADOS DE TEXTO -> MEJORAR ESTRUCTURACION EN CASO DE TEXTO EN DIAGONAL
 
+        # TODO: ordenar y agregar parametros de las funciones
+        # TODO: quizas quitar parametros desde la definicion de la clase y dejaros seteables luego de su creacion
         # TODO : agregar la limpieza segun el texto a los metodos de la clase
         # TODO : dejar como parametro editable el limite para la limpieza por texto
-        # TODO : Hacer pruebas 
-        # DONE: hacer funcionar el codigo con GPU
-        # DONE: eleccion de lematizar
-        # DONE: REVISAR SI PUEDO ELIMINAR REDUNDACIA PERO AHORA DESDE LAS TRANSCRIPCION
         # DONE: MEJORAR FUNCION PARA ELEGIR FRAMES DESDE SLIDE (actual es last_one) -> AGREGAR A DOCUMENTO
         # DONE: REVISAR QUE TAN UTIL SERIA EL RTF (no mucho, se puede agregar formato, y quizas imagenes, -> buscar valor o uso de los RTF)
-        # DOING: AVANZAR DOCUMENTO ->
+        
+        # DONE: eleccion de lematizar
         # DONE dar libertad de los rangos a los cuales se desea filtrar
-        # DONE: LEMATIZACION Y  TOKENIZACION
         # DONE revisar cambios necesarios para implementar solo escala de grises ( o dar la opcion de elegir) -> agregar comparacion al documento

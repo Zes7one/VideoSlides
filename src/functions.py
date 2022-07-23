@@ -56,31 +56,29 @@ def download_video(url):
     except:
         return False, ""
 
-def getqua(rute1, rute2, rgb = False, me = 1): 
+def getqua(frame1, frame2, rgb = False, me = 1): 
     """ Funcion que compara dos frames con la metrica que indica el parametro "me"
     -------------------------------------------------------
     Input:
-        f_ruta (str): ruta frames
-        nombre (str): nombre de la extension de la carpeta de bloques
+        frame1 (str): ruta frames
+        frame2 (str): ruta frames
+        rgb (boolean): indicador para el numero de bandas a usar True -> 3 bandas (RGB) y False -> 1 banda (B/W)
         me (int): metrica a usar para comparar los frames
     Output:
-        Valor (float): valor de evaluacion obtenido con metrica elegida
+        (float): valor de evaluacion obtenido con metrica elegida
     """
-    # COlOR
-    # im1 = cv2.imread(rute1)
-    # im2 = cv2.imread(rute2)
     color = 0 # B/W
     multich = False
     if(rgb):
         color = 1 # RGB
         multich  = True
     #BLANCO Y NEGRO
-    if(isinstance(rute1, str)):
-        im1 = cv2.imread(rute1, color)
-        im2 = cv2.imread(rute2, color)
+    if(isinstance(frame1, str)):
+        im1 = cv2.imread(frame1, color)
+        im2 = cv2.imread(frame2, color)
     else:
-        im1 = rute1
-        im2 = rute2
+        im1 = frame1
+        im2 = frame2
     im1F = img_as_float(im1)
     im2F = img_as_float(im2)
 
@@ -104,42 +102,42 @@ def getqua(rute1, rute2, rgb = False, me = 1):
         dif = np.sum(im1 != im2)
         return dif/pixT
 
-def getdata(f_ruta, rgb = False): 
+def getdata(frames, rgb = False): 
     """ Funcion que usando getqua() en frames ordenados entrega un array con los valores evaluados de frames contiguos
     -------------------------------------------------------
     Input:
-        f_ruta (str): ruta frames o (list): array de imagenes cv2
+        frames (str): ruta de carpeta de frames o (list): array de imagenes cv2
     Output:
         data (list): array ordenado con numeros enteros obtenidos evaluando frames contiguos
     """
-    # data = list()
+    # data = list() ruta
     data = np.array([])
 
-    if(isinstance(f_ruta, list)):
-        for index, frame in enumerate(f_ruta):
+    if(isinstance(frames, list)):
+        for index, frame in enumerate(frames):
             if(index != 0):
-                rute2 = frame
-                qua =  getqua(rute1, rute2, rgb, 1) # SSIM
+                frame2 = frame
+                qua =  getqua(frame1, frame2, rgb, 1) # SSIM
                 data = np.append(data, qua) 
-                rute1 = rute2
+                frame1 = frame2
             else:
-                rute1 = frame
+                frame1 = frame
     else:
-        Frames = ls(ruta = f_ruta)
+        Frames = ls(ruta = frames)
         Frames.sort()
         Frames = list(map(addJ ,Frames))
 
         # iteracion sobre Frames contiguos, comparando por cantidad de pixeles diferntes y por metric SSIM, para eliminar los con info repetida
-        f_ruta = f_ruta+"/"
+        frames = frames+"/"
         for index, frame in enumerate(Frames):
             i = int(frame.split(".")[0]) 
             if(index != 0):
-                rute1 = f_ruta+ str(anterior)+'.jpg'
-                rute2 = f_ruta+ str(i)+'.jpg'
-                qua =  getqua(rute1, rute2, rgb, 1) # SSIM
+                frame1 = frames+ str(anterior)+'.jpg'
+                frame2 = frames+ str(i)+'.jpg'
+                qua =  getqua(frame1, frame2, rgb, 1) # SSIM
                 # TODO anotar esto en documento
                 # TEST grafico
-                # qua =  getqua(rute1, rute2, rgb, 2) 
+                # qua =  getqua(frame1, frame2, rgb, 2) 
                 # if (qua > 0.9):
                 # 	qua = 1
                 data = np.append(data, qua) 
@@ -172,7 +170,7 @@ def dist_2p(pos1, pos2):
         pos1 (tuple(int,int)): valores en eje x e y de punto 1
         pos2 (tuple(int,int)): valores en eje x e y de punto 2
     Output:
-        distancia (float)
+        (float): distancia 
     """
     return sqrt( (pos2[0]-pos1[0])**2 + (pos2[1]-pos1[1])**2 )
 
@@ -183,7 +181,7 @@ def min_dis_sq(pos1, pos2):
         pos1 (arrays(int,int)): valores en eje x e y de punto 1
         pos2 (arrays(int,int)): valores en eje x e y de punto 2
     Output:
-        distancia (float)
+        (float): distancia
     """
     a1,a2,a3,a4 = pos1
     b1,b2,b3,b4 = pos2
@@ -215,16 +213,19 @@ def min_dis_sq(pos1, pos2):
         # ("FALLO")
         raise Exception("Posicion fuera del rango considerado en min_dis_sq()")
 
-def lemat(text):
+def lemat(text, gpu_use = False):
     """ Funcion que lematiza el texto recibido
     -------------------------------------------------------
     Input:
         text (str): string con oración o parrafo a ser lematizado
+        gpu_use: indicador para dar uso o no de la GPU 
     Output:
         ret (str): string con texto lematizado
     """
     # stanza.download('es')
-    nlp = stanza.Pipeline('es', verbose= False,  use_gpu = False) # pos_batch_size=3000
+    gc.collect()
+    torch.cuda.empty_cache()
+    nlp = stanza.Pipeline('es', verbose= False,  use_gpu = gpu_use) # pos_batch_size=3000
     doc = nlp(text)
     ret = ""
     for sent in doc.sentences:
@@ -232,22 +233,26 @@ def lemat(text):
             ret = ret + " " + word.lemma    
     return ret
 
-def easy(reader, ruta, detail, rgb = False, lematiz = False, debugg = False):
+def easy(reader, frames, detail, rgb = False, lematiz = False, gpu_use = False, debugg = False):
     """ Funcion que :
     - Obtiene una transcripcion de una imagen y las posiciones de cada bloque de texto
     - Dadas las posiciones calcula las distancias entre ellos
     - Con las distancias estructura las transcripciones en orden de lectura occidental (arriba hacia abajo e izquierda a derecha)
     -------------------------------------------------------
     Input:
-        ruta (str): ruta frames o imagen (en numpy array)
+        reader (Obj) TODO confirmar que sea objeto
+        frames (str): ruta a carpeta de frames o imagen (numpy array)
         detail (str): nombre de la extension de la carpeta de bloques
+        rgb (boolean):
+        lematiz (boolean):
+        gpu_use (boolean):
         debugg (boolean): True -> grafica sobre la imagen los bloques de texto reconocidos
     Output:
-        order (array): lista con la transcripcion estructurada 
+        order (list): lista con la transcripcion estructurada 
     """
     lematizar = lematiz
     lim_acc = 0.5
-    result = reader.readtext(ruta, detail = detail)
+    result = reader.readtext(frames, detail = detail)
     result = [i for i in result if i[2] > lim_acc]
     if (detail == 1):
         trans = ""
@@ -258,10 +263,10 @@ def easy(reader, ruta, detail, rgb = False, lematiz = False, debugg = False):
         if(rgb):
             color = 1 # RGB
         if(debugg):
-            if(isinstance(ruta, str)):
-                im = cv2.imread(ruta, color)
+            if(isinstance(frames, str)):
+                im = cv2.imread(frames, color)
             else:
-                im = ruta
+                im = frames
             # Create figure and axes
             fig_dims = (5, 5)
             fig, ax = plt.subplots(figsize=fig_dims)
@@ -275,7 +280,7 @@ def easy(reader, ruta, detail, rgb = False, lematiz = False, debugg = False):
             trans = trans + t + "\n"
             if (lematizar):
             # -------------------- SE APLICA LA LEMATIZACION EN LAS TRANSCRIPCIONES --------------------
-                trans_l.append(lemat(t))
+                trans_l.append(lemat(t, gpu_use))
             # ------------------------------------------------------------------------------------------
             else:
             # -------------------- SIN APLICARLA  --------------------
@@ -452,7 +457,7 @@ def clustering(array2):
     ret_array2 = [i for i in ret_array2 if len(i)>0]
     return(ret_array2)
 
-def select(array, frames, type = 0, rgb = False): 
+def select(array, frames, type = 0, rgb = False, gpu_use = False): 
     """ Obtiene un frame por cada sub array dentro de array
     type
     0 : Obtiene los ultimos elementos 
@@ -471,7 +476,7 @@ def select(array, frames, type = 0, rgb = False):
     else:
         gc.collect()
         torch.cuda.empty_cache()
-        reader = easyocr.Reader(['en'], gpu=True) # this needs to run only once to load the model into memory
+        reader = easyocr.Reader(['en'], gpu=gpu_use) # this needs to run only once to load the model into memory
         retorno = get_trans_slide(reader, array, frames, rgb)
     return retorno
 
@@ -512,11 +517,12 @@ def get_trans_slide(reader, array, frames, rgb = False):
                 result = reader.readtext(j, detail = 0)
                 result = (" ").join(result)
                 result = result.split()
-                if(len(result) > len(bigger)):
+                if(len(result) >= len(bigger)): 
                     bigger = result
                     pos = i[c_aux]
                 c_aux += 1 
-        list_ret.append(pos)
+        if( len(bigger) > 0 ):
+            list_ret.append(pos)
         if(debugg):
             print(f"{i} -> {pos}")
     return(list_ret)
@@ -535,7 +541,7 @@ def write_json(data, filename= "default"):
     with  open(filename, "w") as f:
         json.dump(data, f, indent=4)
 
-def get_transcription(vname, f_ruta, data = [], rgb = False, local = True, lematiz = False, ocr = 1): 
+def get_transcription(vname, f_ruta, data = [], rgb = False, local = True, lematiz = False, gpu_use = False, ocr = 1): 
     """ Funcion que itera sobre los frames/imagenes transcribiendolas usando algun OCR (easyOCR o teseract) 
     1 = easyOCR
     2 = teseract 
@@ -567,8 +573,8 @@ def get_transcription(vname, f_ruta, data = [], rgb = False, local = True, lemat
             if (ocr == 1):
                 gc.collect()
                 torch.cuda.empty_cache()
-                reader = easyocr.Reader(['en'], gpu=True) # this needs to run only once to load the model into memory
-                json.append(easy(reader, rute, 1, lematiz, rgb))
+                reader = easyocr.Reader(['en'], gpu=gpu_use) # this needs to run only once to load the model into memory
+                json.append(easy(reader, rute, 1, rgb, lematiz, gpu_use))
             # elif (ocr == 2):
             #     transcription = transcription + tese(rute, False) + "\n\n"
 
@@ -779,7 +785,7 @@ def clean_transc(transc):
                 sent2_a = sent2
                 for kndex, k in enumerate(lt_sent1):
                     if (f"{k} " in sent2_a or f" {k} " in sent2_a or f" {k}" in sent2_a):
-                        sent2_a = sent2_a.replace(k, "", 1) # TODO revisar si necesiatre un auxiliar para hacer este replace
+                        sent2_a = sent2_a.replace(k, "", 1) 
                         counter+=1
                 left.append(counter/len(lt_sent1))
             
