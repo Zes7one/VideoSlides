@@ -27,7 +27,7 @@ def ls(ruta = Path.cwd()):
     Input:
         ruta (str): ruta de carpeta donde se encuentran los frames
     Output:
-        (array(int)) Lista de nombres de Frames casteado a entero
+        (list(int)) Lista de nombres de Frames casteado a entero
     """
     return [int(arch.name.split(".")[0]) for arch in Path(ruta).iterdir() if (arch.is_file() and re.search(r'\.jpg$', arch.name))]
 
@@ -62,7 +62,7 @@ def getqua(frame1, frame2, rgb = False, me = 1):
     Input:
         frame1 (str): ruta frames
         frame2 (str): ruta frames
-        rgb (boolean): indicador para el numero de bandas a usar True -> 3 bandas (RGB) y False -> 1 banda (B/W)
+        rgb (boolean): indicador de uso de 3 bandas de color (RGB, True) o solo una (B/W, False)
         me (int): metrica a usar para comparar los frames
     Output:
         (float): valor de evaluacion obtenido con metrica elegida
@@ -218,7 +218,7 @@ def lemat(text, gpu_use = False):
     -------------------------------------------------------
     Input:
         text (str): string con oración o parrafo a ser lematizado
-        gpu_use: indicador para dar uso o no de la GPU 
+        gpu_use (boolean): indicador para activar o no el uso de la GPU 
     Output:
         ret (str): string con texto lematizado
     """
@@ -240,12 +240,12 @@ def easy(reader, frames, detail, rgb = False, lematiz = False, gpu_use = False, 
     - Con las distancias estructura las transcripciones en orden de lectura occidental (arriba hacia abajo e izquierda a derecha)
     -------------------------------------------------------
     Input:
-        reader (Obj) TODO confirmar que sea objeto
+        reader (class): clase easyocr.easyocr.Reader usada para la transcripcion de frames
         frames (str): ruta a carpeta de frames o imagen (numpy array)
         detail (str): nombre de la extension de la carpeta de bloques
-        rgb (boolean):
-        lematiz (boolean):
-        gpu_use (boolean):
+        rgb (boolean): indicador de uso de 3 bandas de color (RGB, True) o solo una (B/W, False)
+        lematiz (boolean): indicador para lematizar las transcripciones obtenidas
+        gpu_use (boolean): indicador para activar o no el uso de la GPU 
         debugg (boolean): True -> grafica sobre la imagen los bloques de texto reconocidos
     Output:
         order (list): lista con la transcripcion estructurada 
@@ -397,25 +397,25 @@ def easy(reader, frames, detail, rgb = False, lematiz = False, gpu_use = False, 
     else:
         return (" ").join(result)
 
-def deep_index(lst, w):
-    """ Funcion que entrega los indices de puntos a los cuales corresponde la distancia indicada en w, dentro de la lista triangular lst (no flatten)
+def deep_index(distance, word):
+    """ Funcion que entrega los indices de puntos a los cuales corresponde la distancia indicada en w, dentro de la lista triangular distance (no flatten)
     -------------------------------------------------------
     Input:
-        lst array2 (array(arrays(int))): lista de listas con distancias entre bloques de texto, (estructura triangular: [a disntacia con b, c, d, e] [b distancia con c, d, e] ...)
-        w (str): palabra/numero a indexar en las lista lst
+        distance (list(lists(int))): lista de listas con distancias entre bloques de texto, (estructura triangular: [a distancia con b, c, d, e] [b distancia con c, d, e] ...)
+        word (str): palabra/numero a indexar en las lista distance
     Output:
-        l[0] (tuple(int, int)): indices de puntos a los cuales corresponde la distancia indicada en w
+        l[0] (tuple(int, int)): indices de puntos a los cuales corresponde la distancia indicada en word
     """
-    l = list((i, sub.index(w)) for (i, sub) in enumerate(lst) if w in sub)
+    l = list((i, sub.index(word)) for (i, sub) in enumerate(distance) if word in sub)
     return l[0]
 
 def clustering(array2):
     """ Funcion forma grupos segun distancias entregadas
     -------------------------------------------------------
     Input:
-        array2 (array(arrays(int))): lista de listas con distancias entre bloques de texto, (estructura triangular: [a disntacia con b, c, d, e] [b distancia con c, d, e] ...)
+        array2 (list(lists(int))): lista de listas con distancias entre bloques de texto, (estructura triangular: [a disntacia con b, c, d, e] [b distancia con c, d, e] ...)
     Output:
-        ret_array2 (array(array(int))): array de lista de grupos creados a partir de las distancias (no reundantes)
+        ret_array2 (list(list(int))): lista de listas de grupos creados a partir de las distancias (no reundantes)
     """
     tot = len(array2)
     aux = [[None]]*tot
@@ -457,20 +457,24 @@ def clustering(array2):
     ret_array2 = [i for i in ret_array2 if len(i)>0]
     return(ret_array2)
 
-def select(array, frames, type = 0, rgb = False, gpu_use = False): 
-    """ Obtiene un frame por cada sub array dentro de array
-    type
+def select(array, frames, types = 0, rgb = False, gpu_use = False): 
+    """ Obtiene un frame por cada sub lista dentro de "array"
+    types
     0 : Obtiene los ultimos elementos 
-    1 : Obtiene los que posean mas informacion.
+    1 : Obtiene los que posean mas informacion (get_trans_slide).
     -------------------------------------------------------
     Input:
-        array (list): array de arrays
+        array (list): lista de listas
+        frames (str): ruta de carpeta de frames o (list): array de imagenes cv2
+        types (int): indicador del tipo de selector a usar; 0 para el ultimo de cada lista, 1 para usar get_trans_slide
+        rgb (boolean): indicador de uso de 3 bandas de color (RGB, True) o solo una (B/W, False)
+        gpu_use (boolean): indicador para activar o no el uso de la GPU 
     Output:
-        retorno (array) 
+        retorno (list) 
     """
     largo = len(array)
     retorno =  []
-    if(type == 0):
+    if(types == 0):
         for i in range(largo):
             retorno.append(array[i][-1])
     else:
@@ -484,9 +488,12 @@ def get_trans_slide(reader, array, frames, rgb = False):
     """ Obtiene una lista de string, con las transcripciones de los frames indicados en array
     -------------------------------------------------------
     Input:
+        reader (class): clase easyocr.easyocr.Reader usada para la transcripcion de frames
         array (list): array con las posiciones de los frames de una slide
+        frames (str): ruta a carpeta de frames o imagen (numpy array)
+        rgb (boolean): indicador de uso de 3 bandas de color (RGB, True) o solo una (B/W, False)
     Output:
-        retorno (array) 
+        list_ret (list) 
     """
     debugg = False
     color = 0 # B/W
@@ -527,12 +534,11 @@ def get_trans_slide(reader, array, frames, rgb = False):
             print(f"{i} -> {pos}")
     return(list_ret)
 
-
 def write_json(data, filename= "default"): 
     """ Funcion que escribe data en un archivo formato json
     -------------------------------------------------------
     Input:
-        data (array o dict): data estructurada en listas o diccionarios 
+        data (list o dict): data estructurada en listas o diccionarios 
         filename (str): nombre del archivo incluyendo la extension
     Output:
         No aplica
@@ -541,25 +547,30 @@ def write_json(data, filename= "default"):
     with  open(filename, "w") as f:
         json.dump(data, f, indent=4)
 
-def get_transcription(vname, f_ruta, data = [], rgb = False, local = True, lematiz = False, gpu_use = False, ocr = 1): 
+def get_transcription(vname, frames, data = [], rgb = False, runtime = True, lematiz = False, gpu_use = False, ocr = 1): 
     """ Funcion que itera sobre los frames/imagenes transcribiendolas usando algun OCR (easyOCR o teseract) 
     1 = easyOCR
     2 = teseract 
     -------------------------------------------------------
     Input:
-        f_ruta (str): ruta frames o frames (caso runtime)
+        vname (str): nombre del video procesado
+        frames (str): ruta de carpeta de frames o (list): array de imagenes cv2
         data (list): array con posiciones, usadas como filtro en la seleccion de imagenes
-        local (boolean):
+        rgb (boolean): indicador de uso de 3 bandas de color (RGB, True) o solo una (B/W, False)
+        runtime (boolean):
+        lematiz (boolean): indicador para lematizar las transcripciones obtenidas
+        gpu_use (boolean): indicador para activar o no el uso de la GPU 
+        ocr (int): indicador de que OCR es usado para obtner la transcripcion, 1 = easyOCR o 2 = teseract 
     Output:
         transcription (str o list): texto recopilado de cada frame unido en una sola estuctura
     """
-    if(isinstance(f_ruta, list)):
-        Frames = f_ruta
+    if(isinstance(frames, list)):
+        Frames = frames
     else:
-        Frames = ls(ruta = f_ruta)
+        Frames = ls(ruta = frames)
         Frames.sort()
         Frames = list(map(addJ ,Frames))
-        f_ruta = f_ruta+"/"
+        frames = frames+"/"
     transcription = ""
     json = []
     # iteracion sobre Frames contiguos, comparando por cantidad de pixeles diferntes y por metric SSIM, para eliminar los con info repetida
@@ -567,7 +578,7 @@ def get_transcription(vname, f_ruta, data = [], rgb = False, local = True, lemat
         if (len(data) != 0 and index in data):
             if(isinstance(frame, str)):
                 i = int(frame.split(".")[0]) 
-                rute = f_ruta+ str(i)+'.jpg'
+                rute = frames+ str(i)+'.jpg'
             else:
                 rute = frame
             if (ocr == 1):
@@ -582,18 +593,18 @@ def get_transcription(vname, f_ruta, data = [], rgb = False, local = True, lemat
         # filename = "order"
         filename = vname
         transcription = json
-        if(not local):
+        if(not runtime):
             write_json(json, filename)
             return filename+".json"
 
     return transcription
 
-def isame(rute1, rute2, rgb = False, pix_lim = 0.001, ssimv_lim = 0.999, dbugg = False):  
+def isame(frame1, frame2, rgb = False, pix_lim = 0.001, ssimv_lim = 0.999, dbugg = False):  
     """ Compara dos frames usando el porcentaje de pixeles que difieren como tambien el valor para SSIM entre ellos
     -------------------------------------------------------
     Input:
-        rute1 (str): ruta de primer frame
-        rute2 (str): ruta de segundo frame
+        frame1 (str): ruta de primer frame
+        frame2 (str): ruta de segundo frame
         rgb (boolean): indicador de uso de 3 bandas de color (RGB, True) o solo una (B/W, False)
         pix_lim (float): indicador de limite para filtrar imagenes segun metrica de porcentaje de pixeles cambiantes
         ssimv_lim (float): indicador de limite para filtrar imagenes segun metrica SSIM
@@ -602,20 +613,20 @@ def isame(rute1, rute2, rgb = False, pix_lim = 0.001, ssimv_lim = 0.999, dbugg =
         state (boolean): indicador que indica si son considerados suficientemente similares 
     """
     # COlOR
-    # im1 = cv2.imread(rute1)
-    # im2 = cv2.imread(rute2)
+    # im1 = cv2.imread(frame1)
+    # im2 = cv2.imread(frame2)
     #BLANCO Y NEGRO
     color = 0 # B/W
     multich = False
     if(rgb):
         color = 1 # RGB
         multich  = True
-    if(isinstance(rute1, str)):
-        im1 = cv2.imread(rute1, color)
-        im2 = cv2.imread(rute2, color)
+    if(isinstance(frame1, str)):
+        im1 = cv2.imread(frame1, color)
+        im2 = cv2.imread(frame2, color)
     else:
-        im1 = rute1
-        im2 = rute2
+        im1 = frame1
+        im2 = frame2
     im1F = img_as_float(im1)
     im2F = img_as_float(im2)
     
@@ -656,27 +667,30 @@ def isame(rute1, rute2, rgb = False, pix_lim = 0.001, ssimv_lim = 0.999, dbugg =
         plt.show(block=True)
     return state
 
-def clean(f_ruta, rgb = False, pix_lim = 0.001, ssimv_lim = 0.999): 
+def clean(frames, rgb = False, pix_lim = 0.001, ssimv_lim = 0.999): 
     """ Funcion que usando isame() filtra las imagenes que son consideradas iguales (dejando solo una de ellas)
-    para el caso de no estar local : se elimina el frame de la ruta 
-    caso local: se crea una nueva lista con los frames correspondientes y se retorna   
+    para el caso de no estar runtime : se elimina el frame de la ruta 
+    caso runtime: se crea una nueva lista con los frames correspondientes y se retorna   
     -------------------------------------------------------
     Input:
-        f_ruta (str): ruta frames
+        frames (str): ruta de carpeta de frames o (list): array de imagenes cv2
+        rgb (boolean): indicador de uso de 3 bandas de color (RGB, True) o solo una (B/W, False)
+        pix_lim (float): indicador de limite para filtrar imagenes segun metrica de porcentaje de pixeles cambiantes
+        ssimv_lim (float): indicador de limite para filtrar imagenes segun metrica SSIM
     Output:
-        Frames (lista): local-> lista con los frames (array(numpy.array)) y no-local-> lista con los nombre de los frames en la carpeta
+        Frames (lista): runtime-> lista con los frames (array(numpy.array)) y no-runtime-> lista con los nombre de los frames en la carpeta
     """
-    if(isinstance(f_ruta, list)):
-        Frames = f_ruta.copy()
+    if(isinstance(frames, list)):
+        Frames = frames.copy()
     else:
-        Frames = ls(ruta = f_ruta)
+        Frames = ls(ruta = frames)
         Frames.sort()
         Frames = list(map(addJ ,Frames))
-        f_ruta = f_ruta+"/"
+        frames = frames+"/"
 
     # iteracion sobre Frames contiguos, comparando por cantidad de pixeles diferntes y por metric SSIM, para eliminar los con info repetida
     # j = 0 
-    if(isinstance(f_ruta, list)):
+    if(isinstance(frames, list)):
         Frames_R = []
         for a, frame in enumerate(Frames):
             if(a != 0):
@@ -693,8 +707,8 @@ def clean(f_ruta, rgb = False, pix_lim = 0.001, ssimv_lim = 0.999):
         for a, frame in enumerate(Frames):
             i = int(frame.split(".")[0]) 
             if(a != 0):
-                rute1 = f_ruta+ str(anterior)+'.jpg'
-                rute2 = f_ruta+ str(i)+'.jpg'
+                rute1 = frames+ str(anterior)+'.jpg'
+                rute2 = frames+ str(i)+'.jpg'
                 if(isame(rute1, rute2, rgb, pix_lim, ssimv_lim)):  # si son iguales se elimina el primero, si son distintos no se hace nada
                     os.remove(rute1)
             anterior = i
@@ -704,8 +718,8 @@ def ploteo(nombre, data):
     """ Funcion que grafica data 1D, y en caso de no entregarla la obtiene usando getdata(f_ruta)
     -------------------------------------------------------
     Input:
-        f_ruta (str): ruta frames
         nombre (str): nombre de la data (video)
+        data (list): lista con valores obtenidos de la comparacion de frames contiguos
     Output:
         "OK" (str)
     """
@@ -718,7 +732,7 @@ def classic(data, nombre):
     """ Grafica data 1D, indicando el nombre, minimo y maximo de la data
     -------------------------------------------------------
     Input:
-        data (list):  array ordenado con numeros enteros 1D
+        data (list): array ordenado con numeros enteros 1D
         nombre (str): nombre de la data (video)
     Output:
         no aplica
@@ -737,7 +751,7 @@ def clean_transc(transc):
     """ Desde una transcripcion en formato de lista se eliminan redundancias y se retorna la nueva lista
     -------------------------------------------------------
     Input:
-        transc (list):  array de arrays con texto transcrito
+        transc (list):  lista de listas con texto transcrito
     Output:
         transc 
     """
