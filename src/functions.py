@@ -14,6 +14,8 @@ from math import sqrt
 from math import floor
 from skimage import img_as_float
 from skimage.metrics import structural_similarity as ssim
+import pytesseract 
+from pytesseract import Output
 
 import gc
 import torch
@@ -212,26 +214,6 @@ def min_dis_sq(pos1, pos2):
     else:
         # ("FALLO")
         raise Exception("Posicion fuera del rango considerado en min_dis_sq()")
-
-def lemat(text, gpu_use = False):
-    """ Funcion que lematiza el texto recibido
-    -------------------------------------------------------
-    Input:
-        text (str): string con oración o parrafo a ser lematizado
-        gpu_use (boolean): indicador para activar o no el uso de la GPU 
-    Output:
-        ret (str): string con texto lematizado
-    """
-    # stanza.download('es')
-    gc.collect()
-    torch.cuda.empty_cache()
-    nlp = stanza.Pipeline('es', verbose= False,  use_gpu = gpu_use) # pos_batch_size=3000
-    doc = nlp(text)
-    ret = ""
-    for sent in doc.sentences:
-        for word in sent.words:
-            ret = ret + " " + word.lemma    
-    return ret
 
 def easy(reader, frames, detail, rgb = False, lematiz = False, gpu_use = False, debugg = False):
     """ Funcion que :
@@ -575,7 +557,7 @@ def get_transcription(vname, frames, data = [], rgb = False, runtime = True, lem
     json = []
     # iteracion sobre Frames contiguos, comparando por cantidad de pixeles diferntes y por metric SSIM, para eliminar los con info repetida
     for index, frame in enumerate(Frames):
-        if (len(data) != 0 and index in data):
+        # if (len(data) != 0 and index in data):
             if(isinstance(frame, str)):
                 i = int(frame.split(".")[0]) 
                 rute = frames+ str(i)+'.jpg'
@@ -678,7 +660,8 @@ def clean(frames, rgb = False, pix_lim = 0.001, ssimv_lim = 0.999):
         pix_lim (float): indicador de limite para filtrar imagenes segun metrica de porcentaje de pixeles cambiantes
         ssimv_lim (float): indicador de limite para filtrar imagenes segun metrica SSIM
     Output:
-        Frames (lista): runtime-> lista con los frames (array(numpy.array)) y no-runtime-> lista con los nombre de los frames en la carpeta
+        Frames (str): ruta de carpeta de frames o (list): array de imagenes cv2
+        # Frames (lista): runtime-> lista con los frames (array(numpy.array)) y no-runtime-> lista con los nombre de los frames en la carpeta
     """
     if(isinstance(frames, list)):
         Frames = frames.copy()
@@ -712,6 +695,7 @@ def clean(frames, rgb = False, pix_lim = 0.001, ssimv_lim = 0.999):
                 if(isame(rute1, rute2, rgb, pix_lim, ssimv_lim)):  # si son iguales se elimina el primero, si son distintos no se hace nada
                     os.remove(rute1)
             anterior = i
+        Frames = frames
     return Frames
 
 def ploteo(nombre, data): 
@@ -829,6 +813,168 @@ def clean_transc(transc):
 
     if (not runtime):
         write_json(new, path)
-        return path+".json"
+        return path+".json", dele
 
-    return new
+    return new, dele
+
+def delete_frames(frames, lt_delet, tipo = 0):
+    """ Desde una transcripcion en formato de lista se eliminan redundancias y se retorna la nueva lista
+    -------------------------------------------------------
+    Input:
+        frames (str): ruta de carpeta de frames o (list): array de imagenes cv2
+        lt_delet (list):  lista ordenada de frames a ser eliminados (1 en posicion de frames a eliminar, 0 sino se elimina) o (numero de las posiciones a mantenerse, ej: [0,3,7])
+        tipo (int): indicador si se usara la primera o segunda estructura para la lista lt_delet
+    Output:
+        frames (str): ruta de carpeta de frames o (list): array de imagenes cv2
+    """
+    if(isinstance(frames, list)):
+        Frames = frames.copy()
+    else:
+        Frames = ls(ruta = frames)
+        Frames.sort()
+        Frames = list(map(addJ ,Frames))
+        frames = frames+"/"
+
+    if (tipo == 0):
+        if(isinstance(frames, list)):
+            Frames_R = []
+            for a, frame in enumerate(Frames):
+                if(lt_delet[a] == 0):
+                    Frames_R.append(frame)
+            Frames = Frames_R
+
+        else: 
+            for a, frame in enumerate(Frames):
+                i = int(frame.split(".")[0]) 
+                rute = frames+ str(i)+'.jpg'
+                if(lt_delet[a] == 1):
+                    os.remove(rute)
+            Frames = frames
+    
+    elif(tipo == 1):
+        if(isinstance(frames, list)):
+            Frames_R = []
+            for a, frame in enumerate(Frames):
+                if(a in lt_delet):
+                    Frames_R.append(frame)
+            Frames = Frames_R
+
+        else: 
+            for a, frame in enumerate(Frames):
+                i = int(frame.split(".")[0]) 
+                rute = frames+ str(i)+'.jpg'
+                if(a not in lt_delet):
+                    os.remove(rute)
+            Frames = frames
+
+    return Frames
+
+def lemat(text, gpu_use = False):
+    """ Funcion que lematiza el texto recibido
+    -------------------------------------------------------
+    Input:
+        text (str): string con oración o parrafo a ser lematizado
+        gpu_use (boolean): indicador para activar o no el uso de la GPU 
+    Output:
+        ret (str): string con texto lematizado
+    """
+    # stanza.download('es')
+    gc.collect()
+    torch.cuda.empty_cache()
+    nlp = stanza.Pipeline('es', verbose= False,  use_gpu = gpu_use) # pos_batch_size=3000
+    doc = nlp(text)
+    ret = ""
+    for sent in doc.sentences:
+        for word in sent.words:
+            ret = ret + " " + word.lemma    
+            # print(f'word: {word.text} \tlemma: {word.lemma}') 
+    return ret
+
+def lemat2(nlp, text, type = 0):
+    """ Funcion que lematiza el texto recibido
+    -------------------------------------------------------
+    Input:
+        nlp: stanza.Pipeline
+        text (str): string con oración o parrafo a ser lematizado
+        gpu_use (boolean): indicador para activar o no el uso de la GPU 
+    Output:
+        ret (str): string con texto lematizado
+    """
+    doc = nlp(text)
+    ret = ""
+    for sent in doc.sentences:
+        for word in sent.words:
+            ret = ret + " " + word.lemma    
+            # print(f'word: {word.text} \tlemma: {word.lemma} \tpos: {word.pos} \tfeats: {word.feats}  ')  
+    return ret
+
+def lematize(transcription, gpu_use = False):
+    """ Funcion que lematiza transcripcion desde un array o una carpeta
+    -------------------------------------------------------
+    Input:
+        transcription (str): string con oración o parrafo a ser lematizado
+        gpu_use (boolean): indicador para activar o no el uso de la GPU 
+    Output:
+        transcription (str o list): string con ruta al json o lista de listas con la transcripcion
+    """
+
+    if(isinstance(transcription, list)):
+        slides = transcription.copy()
+    else:
+        f = open (transcription, "r")
+        slides = json.loads(f.read())
+
+    # stanza.download('es')
+    gc.collect()
+    torch.cuda.empty_cache()
+    nlp = stanza.Pipeline('es', verbose= False,  use_gpu = gpu_use) # pos_batch_size=3000
+    for index, i in enumerate(slides):
+        # if (isinstance(i, list)):
+        for jndex, j in enumerate(i):
+            if (isinstance(j, list)):
+                for kndex, k in enumerate(j):
+                    if (isinstance(k, list)):
+                        for lndex, l in enumerate(k):
+                            slides[index][jndex][kndex][lndex] = lemat2(nlp, slides[index][jndex][kndex][lndex])
+                    else:
+                        slides[index][jndex][kndex] = lemat2(nlp, slides[index][jndex][kndex])
+            else:
+                slides[index][jndex] = lemat2(nlp, slides[index][jndex])
+
+    if(isinstance(transcription, list)):
+        return slides
+    else:
+        filename = transcription.replace(".json", "")
+        write_json(slides, filename)
+        return transcription
+
+def tese(ruta, debug = False): 
+    """ Funcion que desde un frame/imagene obtiene una transcripcion usando OCR tesseract
+    -------------------------------------------------------
+    Input:
+        ruta (str): ruta de frame/imagen a transcribir
+        debug (boolean): indicador si se quiere o no mostrar la imagen a transcribir
+    Output:
+        data (str): transcripcion de la imagen a texto
+    """
+    # inicio = time.time()
+    pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+    image = cv2.imread(ruta, 0)
+    conf = f'--psm 6'
+    conf = f'--psm 6 -c tessedit_char_whitelist=0123456789.%,/+-*'
+    # rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    # results = pytesseract.image_to_data(rgb, output_type=Output.DICT)
+    results = pytesseract.image_to_data(image, lang='eng', config=conf, output_type=Output.DICT)
+    data = pytesseract.image_to_string(image, lang='eng', config=conf)
+    print(data)
+    [print(i, results[i]) for i in results if i] # == 'conf' ]
+    # print(results)
+    # if (debug == True):
+    #     # plt.imshow(image, cmap = 'gray', interpolation = 'bicubic')
+    #     # plt.imshow(opening, cmap = 'gray', interpolation = 'bicubic')
+    #     plt.imshow(image, cmap = 'gray', interpolation = 'bicubic')
+    #     plt.xticks([]), plt.yticks([])  # to hide tick values on X and Y axis
+    #     plt.show()
+    #     fin = time.time()
+    #     print("TIME : %d [seg]" % round(fin-inicio, 2)) 
+    return data

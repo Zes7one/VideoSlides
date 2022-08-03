@@ -173,7 +173,16 @@ class Video:
             sets.append(array)
             self.slides = fc.select(sets, self.frames, 1, self.rgb, self.gpu_use) # 0 -> Se seleccionan los ultimos frames de cada conjunto 
 
+        self.frames = fc.delete_frames(self.frames, self.slides, 1)
+
     def set_transcription(self):
+        """ Transcribe las imagenes  contenidas en self.frames, ordena la data y la deja almacenada en un array o json (dependiendo de self.runtime)
+        -------------------------------------------------------
+        Input:
+            No aplica
+        Output:
+            No aplica
+        """
         if (len(self.slides) == 0):
             self.set_slides()
             msg = "No se tienen las slides, se ejecuta automaticamente el metodo set_slides() para setearla en el atributo slides"
@@ -182,13 +191,42 @@ class Video:
         self.transcription = fc.get_transcription(self.video_name, self.frames, self.slides, self.rgb, self.runtime, self.lematiz, self.gpu_use) # los dos casos cubiertos 
 
     def clean_frames(self): 
+        """ Itera sobre los frames comparando usando metricas de calidad de imagen para eliminar las que sean consideradas suficientemente similares
+        para el caso de no estar runtime : se elimina el frame de la ruta 
+        caso runtime: se crea una nueva lista con los frames correspondientes y se retorna  
+        -------------------------------------------------------
+        Input:
+            No aplica
+        Output:
+            No aplica
+        """
         if(self.runtime):
             self.frames = fc.clean(self.frames, self.rgb, self.pix_lim, self.ssimv_lim)
         else:
-            fc.clean(self.frames_path, self.rgb, self.pix_lim, self.ssimv_lim)
+            fc.clean(self.frames, self.rgb, self.pix_lim, self.ssimv_lim)
 
     def clean_transc(self):
-        self.transcription = fc.clean_transc(self.transcription)
+        """  Desde una transcripcion formateada se eliminan redundancias y luego se eliminan los frames:
+        runtime: se filtran sobre el array 
+        no runtime: se eliminan los archivos de la ruta de los frames
+        -------------------------------------------------------
+        Input:
+            No aplica
+        Output:
+            No aplica
+        """
+        self.transcription, lt_delet = fc.clean_transc(self.transcription)
+        self.frames = fc.delete_frames(self.frames, lt_delet)
+
+    def lematize(self):
+        """  Funcion aplica lematizacion sobre la transcripcion almacenada en self.transcription, reemplazando la original
+        -------------------------------------------------------
+        Input:
+            No aplica
+        Output:
+            No aplica
+        """
+        self.transcription = fc.lematize(self.transcription, self.gpu_use)
 
 
 
@@ -198,6 +236,7 @@ class Video:
         # TODO: N-GRAMA PARA LA CORRECCION -> REVISAR QUE PALABRAS SE REPITEN MAS Y QUIZAR HACER UNA ANALISIS ESTADISTICO CON ESTO (UN PLUS (?))
         # TODO: MENCIONAR QUE SE PUEDE MEJORAR EL CALCULO DE DISTANCIA ENTRE CUADRADOS DE TEXTO -> MEJORAR ESTRUCTURACION EN CASO DE TEXTO EN DIAGONAL
 
+        # TODO: aplicar tesseract en los casos que se encuentre un digito o cifra en self.transcription (puede ir despues de lematization)
         # TODO: quizas quitar parametros desde la definicion de la clase y dejaros seteables luego de su creacion
         # TODO : dejar como parametro editable el limite para la limpieza por texto
         # DONE: MEJORAR FUNCION PARA ELEGIR FRAMES DESDE SLIDE (actual es last_one) -> AGREGAR A DOCUMENTO
