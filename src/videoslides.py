@@ -188,7 +188,7 @@ class Video:
             msg = "No se tienen las slides, se ejecuta automaticamente el metodo set_slides() para setearla en el atributo slides"
             warnings.warn(f"Warning........... {msg}")
 
-        self.transcription = fc.get_transcription(self.video_name, self.frames, self.slides, self.rgb, self.runtime, self.lematiz, self.gpu_use) # los dos casos cubiertos 
+        self.transcription = fc.get_transcription(self.video_name, self.frames, self.slides, self.rgb, self.runtime, self.gpu_use) # los dos casos cubiertos 
 
     def clean_frames(self): 
         """ Itera sobre los frames comparando usando metricas de calidad de imagen para eliminar las que sean consideradas suficientemente similares
@@ -228,22 +228,54 @@ class Video:
         """
         self.transcription = fc.lematize(self.transcription, self.gpu_use)
 
+    def improve_num(self):
+        """  Funcion corrige digitos de la transcripcion inicial, utilizando el OCR de Tesseract 
+        -------------------------------------------------------
+        Input:
+            No aplica
+        Output:
+            No aplica
+        """
+        # tomar frames finales
+        print("ENTRO")
+        transcription_tesse = fc.get_transcription(self.video_name, self.frames, [], self.rgb, self.runtime, self.gpu_use, 2) # los dos casos cubiertos 
+        print(transcription_tesse)
+
+    def improve_quality(model, ratio, self):
+        """  Funcion mejora calidad de imagenes, ya sea la lista de frames o frames guardados localmente
+        -------------------------------------------------------
+        Input:
+            No aplica
+            model
+            ratio
+        Output:
+            No aplica
+        """
+        # self.frames
+        if(self.runtime):
+            for index, frame in enumerate(self.frames):
+                fc.upscale_img(frame, model, ratio, self.runtime, self.gpu_use)
+        print()
 
 
 
+        # TODO: aplicar tesseract en los casos que se encuentre un digito o cifra en self.transcription (puede ir despues de lematization)
         # TODO: REVISAR SI EXISTE ALGUNA FORMA DE ENTREGAR MAYOR VALOR A LA ESTRUCTURACION ( ETIQUETAS ? : TITTLE, COMMENT, NAMES, NUMBER OR DATES)
+
+
         # TODO: REVISAR FORMAS DE OBTENER CONTEXTO DE INFO EN UNA LAMINA (QUIZAS FILTRAR Y OMITIR INFORMACION NO RELEVANTE)
         # TODO: N-GRAMA PARA LA CORRECCION -> REVISAR QUE PALABRAS SE REPITEN MAS Y QUIZAR HACER UNA ANALISIS ESTADISTICO CON ESTO (UN PLUS (?))
         # TODO: MENCIONAR QUE SE PUEDE MEJORAR EL CALCULO DE DISTANCIA ENTRE CUADRADOS DE TEXTO -> MEJORAR ESTRUCTURACION EN CASO DE TEXTO EN DIAGONAL
-
-        # TODO: aplicar tesseract en los casos que se encuentre un digito o cifra en self.transcription (puede ir despues de lematization)
         # TODO: quizas quitar parametros desde la definicion de la clase y dejaros seteables luego de su creacion
         # TODO : dejar como parametro editable el limite para la limpieza por texto
+
+
+
+
+        # DONE: Dejar con el formato de result de EASYOCR el resultado obtenido con tesseract 
         # DONE: MEJORAR FUNCION PARA ELEGIR FRAMES DESDE SLIDE (actual es last_one) -> AGREGAR A DOCUMENTO
         # DONE: REVISAR QUE TAN UTIL SERIA EL RTF (no mucho, se puede agregar formato, y quizas imagenes, -> buscar valor o uso de los RTF)
         
         # DONE: eleccion de lematizar
         # DONE dar libertad de los rangos a los cuales se desea filtrar
         # DONE revisar cambios necesarios para implementar solo escala de grises ( o dar la opcion de elegir) -> agregar comparacion al documento
-
-        # 

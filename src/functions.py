@@ -11,11 +11,12 @@ from pytube import YouTube
 from pathlib import Path
 from matplotlib import pyplot as plt
 from math import sqrt 
-from math import floor
+from math import floor 
 from skimage import img_as_float
 from skimage.metrics import structural_similarity as ssim
 import pytesseract 
 from pytesseract import Output
+from cv2 import dnn_superres
 
 import gc
 import torch
@@ -215,7 +216,7 @@ def min_dis_sq(pos1, pos2):
         # ("FALLO")
         raise Exception("Posicion fuera del rango considerado en min_dis_sq()")
 
-def easy(reader, frames, detail, rgb = False, lematiz = False, gpu_use = False, debugg = False):
+def easy(reader, frames, detail, rgb = False, ocr = 1, debugg = False): # lematiz = False
     """ Funcion que :
     - Obtiene una transcripcion de una imagen y las posiciones de cada bloque de texto
     - Dadas las posiciones calcula las distancias entre ellos
@@ -226,16 +227,18 @@ def easy(reader, frames, detail, rgb = False, lematiz = False, gpu_use = False, 
         frames (str): ruta a carpeta de frames o imagen (numpy array)
         detail (str): nombre de la extension de la carpeta de bloques
         rgb (boolean): indicador de uso de 3 bandas de color (RGB, True) o solo una (B/W, False)
-        lematiz (boolean): indicador para lematizar las transcripciones obtenidas
         gpu_use (boolean): indicador para activar o no el uso de la GPU 
         debugg (boolean): True -> grafica sobre la imagen los bloques de texto reconocidos
     Output:
         order (list): lista con la transcripcion estructurada 
     """
-    lematizar = lematiz
+    # ocr = 1 # 1 EasyOCR y 2 Tesse
     lim_acc = 0.5
-    result = reader.readtext(frames, detail = detail)
-    result = [i for i in result if i[2] > lim_acc]
+    if(ocr == 1):
+        result = reader.readtext(frames, detail = detail)
+        result = [i for i in result if i[2] > lim_acc]
+    else:
+        result = tese(frames, lim_acc, debug = False)
     if (detail == 1):
         trans = ""
         ref_pos = []
@@ -260,15 +263,11 @@ def easy(reader, frames, detail, rgb = False, lematiz = False, gpu_use = False, 
             aux = []
             count = 0
             trans = trans + t + "\n"
-            if (lematizar):
-            # -------------------- SE APLICA LA LEMATIZACION EN LAS TRANSCRIPCIONES --------------------
-                trans_l.append(lemat(t, gpu_use))
-            # ------------------------------------------------------------------------------------------
-            else:
-            # -------------------- SIN APLICARLA  --------------------
-                trans_l.append(t)
-            # --------------------------------------------------------
-            for  pos, text, accu in result :			
+            trans_l.append(t)
+            for  pos, text, accu in result :	
+                print("pos")		
+                print(pos)		
+                exit(1)
                 if (c < count): 
                     dis = round(min_dis_sq(p, pos),2)
                     aux.append(dis)
@@ -529,7 +528,7 @@ def write_json(data, filename= "default"):
     with  open(filename, "w") as f:
         json.dump(data, f, indent=4)
 
-def get_transcription(vname, frames, data = [], rgb = False, runtime = True, lematiz = False, gpu_use = False, ocr = 1): 
+def get_transcription(vname, frames, data = [], rgb = False, runtime = True, gpu_use = False, ocr = 1): # , lematiz = False
     """ Funcion que itera sobre los frames/imagenes transcribiendolas usando algun OCR (easyOCR o teseract) 
     1 = easyOCR
     2 = teseract 
@@ -540,7 +539,6 @@ def get_transcription(vname, frames, data = [], rgb = False, runtime = True, lem
         data (list): array con posiciones, usadas como filtro en la seleccion de imagenes
         rgb (boolean): indicador de uso de 3 bandas de color (RGB, True) o solo una (B/W, False)
         runtime (boolean):
-        lematiz (boolean): indicador para lematizar las transcripciones obtenidas
         gpu_use (boolean): indicador para activar o no el uso de la GPU 
         ocr (int): indicador de que OCR es usado para obtner la transcripcion, 1 = easyOCR o 2 = teseract 
     Output:
@@ -567,9 +565,12 @@ def get_transcription(vname, frames, data = [], rgb = False, runtime = True, lem
                 gc.collect()
                 torch.cuda.empty_cache()
                 reader = easyocr.Reader(['en'], gpu=gpu_use) # this needs to run only once to load the model into memory
-                json.append(easy(reader, rute, 1, rgb, lematiz, gpu_use))
-            # elif (ocr == 2):
-            #     transcription = transcription + tese(rute, False) + "\n\n"
+                json.append(easy(reader, rute, 1, rgb, 1))
+            elif (ocr == 2):
+                # transcription = transcription + tese(rute, False) + "\n\n"
+                reader = 1
+                json.append(easy(reader, rute, 1, rgb, 2))
+                # TODO: agregar coeficiente para tomar para caso de TESE porcentaje de confianza mayor a 0.8 aprox
 
     if (ocr == 1):
         # filename = "order"
@@ -578,6 +579,8 @@ def get_transcription(vname, frames, data = [], rgb = False, runtime = True, lem
         if(not runtime):
             write_json(json, filename)
             return filename+".json"
+    elif (ocr == 2):
+        return json
 
     return transcription
 
@@ -890,7 +893,7 @@ def lemat(text, gpu_use = False):
             # print(f'word: {word.text} \tlemma: {word.lemma}') 
     return ret
 
-def lemat2(nlp, text, type = 0):
+def lemat2(nlp, text):
     """ Funcion que lematiza el texto recibido
     -------------------------------------------------------
     Input:
@@ -905,8 +908,29 @@ def lemat2(nlp, text, type = 0):
     for sent in doc.sentences:
         for word in sent.words:
             ret = ret + " " + word.lemma    
-            # print(f'word: {word.text} \tlemma: {word.lemma} \tpos: {word.pos} \tfeats: {word.feats}  ')  
     return ret
+
+def pos(nlp, text): # PEND
+    """ Funcion pend
+    -------------------------------------------------------
+    Input:
+        nlp: stanza.Pipeline
+        text (str): string con oración o parrafo a ser 
+        gpu_use (boolean): indicador para activar o no el uso de la GPU 
+    Output:
+        ret (str): string con texto procesado
+    """
+    doc = nlp(text)
+    ret = ""
+    for sent in doc.sentences:
+        for word in sent.words:
+            # ret = ret + " " + word.lemma  
+            if ( word.feats != None and "NumForm=Digit" in word.feats ):
+                print( type(word.feats), "DIGITO", word.text )
+            # print(f'word: {word.text} \tlemma: {word.lemma} \tpos: {word.pos} \tfeats: {word.feats}  ')  
+            # if():
+    return ret
+
 
 def lematize(transcription, gpu_use = False):
     """ Funcion que lematiza transcripcion desde un array o una carpeta
@@ -948,7 +972,7 @@ def lematize(transcription, gpu_use = False):
         write_json(slides, filename)
         return transcription
 
-def tese(ruta, debug = False): 
+def tese(ruta, lim_acc, debug = False): 
     """ Funcion que desde un frame/imagene obtiene una transcripcion usando OCR tesseract
     -------------------------------------------------------
     Input:
@@ -961,20 +985,67 @@ def tese(ruta, debug = False):
     pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
     image = cv2.imread(ruta, 0)
     conf = f'--psm 6'
-    conf = f'--psm 6 -c tessedit_char_whitelist=0123456789.%,/+-*'
+    coefic = lim_acc*100
+    # conf = f'--psm 6 -c tessedit_char_whitelist=0123456789.%,/+-*'
     # rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     # results = pytesseract.image_to_data(rgb, output_type=Output.DICT)
     results = pytesseract.image_to_data(image, lang='eng', config=conf, output_type=Output.DICT)
     data = pytesseract.image_to_string(image, lang='eng', config=conf)
-    print(data)
-    [print(i, results[i]) for i in results if i] # == 'conf' ]
+    # print(data)
+    # [print(i, results[i]) for i in results ]
+    # exit(1)
+    # [print(i) for i in results ]
+
+
+    conf = [results[i] for i in results if i == 'conf'][0]
+    conf = [float(i) for i in conf]
+    left = [j for jndex, j in enumerate([results[i] for i in results if i == 'left'][0]) if float(conf[jndex]) > coefic]
+    top = [j for jndex, j in enumerate([results[i] for i in results if i == 'top'][0]) if float(conf[jndex]) > coefic]
+    width = [j for jndex, j in enumerate([results[i] for i in results if i == 'width'][0]) if float(conf[jndex]) > coefic]
+    height = [j for jndex, j in enumerate([results[i] for i in results if i == 'height'][0]) if float(conf[jndex]) > coefic]
+    text = [j for jndex, j in enumerate([results[i] for i in results if i == 'text'][0]) if float(conf[jndex]) > coefic]
+    conf = [i for i in conf if i > coefic]
+
+    # [print(f"{i} --> {conf[index]}") for index, i in enumerate(text)]  
+    compilado = [([[left[index], top[index]], [left[index]+width[index],top[index]], [left[index]+width[index], top[index]+height[index]], [left[index], top[index]+height[index]]], i, conf[index]) for index, i in enumerate(text)]
+    return compilado
+    # [print(i) for i in compilado ]
+
+    [print(f"{conf[index]} --> {i}") for index, i in enumerate(text) if float(conf[index]) > 70] 
     # print(results)
-    # if (debug == True):
-    #     # plt.imshow(image, cmap = 'gray', interpolation = 'bicubic')
-    #     # plt.imshow(opening, cmap = 'gray', interpolation = 'bicubic')
-    #     plt.imshow(image, cmap = 'gray', interpolation = 'bicubic')
-    #     plt.xticks([]), plt.yticks([])  # to hide tick values on X and Y axis
-    #     plt.show()
-    #     fin = time.time()
-    #     print("TIME : %d [seg]" % round(fin-inicio, 2)) 
     return data
+
+def upscale_img(img, model, ratio, runtime, gpu):
+    """ funcion que mejora imagen segun modelo y escala entregada
+    Args:
+        img (str): ruta hacia de imagen a mejorar
+        model (str): nombre del modelo a usar ('edsr', 'espcn', 'fsrcnn' o 'lapsrn')
+        ratio (int): escala a aplicar a la imagen (2, 3 o 4)
+        replace (boolean): indicador para reemplazo de img mejorada 
+        runtime (boolean): indicador de modo de manejo de imagenes (True: imagen en numpy.array, False: entonces img es ruta de la imagen)
+        gpu (boolean): indicador de uso de gpu
+    """
+    sr = dnn_superres.DnnSuperResImpl_create()
+    if not runtime:
+        image = img
+        img = cv2.imread(img)
+    # Read the desired model
+    path = f"./models/{model}_x{ratio}.pb"
+    sr.readModel(path)
+    if (gpu):
+        # Set CUDA backend and target to enable GPU inference
+        sr.setPreferableBackend(cv2.dnn.DNN_BACKEND_CUDA)
+        sr.setPreferableTarget(cv2.dnn.DNN_TARGET_CUDA)
+    # Set the desired model and scale to get correct pre- and post-processing
+    sr.setModel(model.lower(), ratio)
+    result = sr.upsample(img)
+    # Save the image
+    # if replace:
+    if not runtime:
+        cv2.imwrite(image, result)
+        return 'ok'
+    else:
+        return img
+        # img = result
+    # else:
+    #     cv2.imwrite(f"./Outputs/IMG/{model}-{ratio}-{name}", result)
