@@ -124,7 +124,7 @@ class Video:
     def set_frames_path(self, frames_path):
         self.frames_path = frames_path
 
-    def set_data(self): # se setea la data segun este usandose de forma runtime o no
+    def set_data(self, me): # se setea la data segun este usandose de forma runtime o no
         """ Funcion que usando getqua() sobre frames ordenados entrega un array con los valores evaluados de frames contiguos
         -------------------------------------------------------
         Input:
@@ -132,13 +132,9 @@ class Video:
         Output:
             No aplica
         """
-        self.data = fc.getdata(self.frames, self.rgb) # ambos casos cubiertos
-        # if(self.runtime):
-        #     self.data = fc.getdata(self.frames, self.rgb) # caso runtime 
-        # else:
-        #     self.data = fc.getdata(self.frames_path, self.rgb) # caso NO runtime
+        self.data = fc.getdata(self.frames, me, self.rgb) # ambos casos cubiertos (runtime TRUE/FALSE)
 
-    def set_slides(self, posiciones = None):
+    def set_slides(self, me = 1, posiciones = None, coef = 3):
         """ divide y obtiene los frames que contienen la mayor parte de la informacion de cada slide
         -------------------------------------------------------
         Input:
@@ -150,12 +146,12 @@ class Video:
             self.frames = [i for index, i in enumerate(self.frames) if index in posiciones]
         else:
             if (len(self.data) == 0):
-                self.set_data()
+                self.set_data(me)
                 msg = "No se tiene data, se ejecuta automaticamente el metodo set_data() para setearla en el atributo data"
                 warnings.warn(f"Warning........... {msg}")
 
             N = len(self.data) + 1
-            num_slides, pos_division = fc.localmin(self.data)
+            num_slides, pos_division = fc.localmin(self.data, coef)
             sets = []
             pos_division.append(N)
 
@@ -175,7 +171,7 @@ class Video:
 
         self.frames = fc.delete_frames(self.frames, self.slides, 1)
 
-    def set_transcription(self):
+    def set_transcription(self, path = '', ocr = 1):
         """ Transcribe las imagenes  contenidas en self.frames, ordena la data y la deja almacenada en un array o json (dependiendo de self.runtime)
         -------------------------------------------------------
         Input:
@@ -188,7 +184,7 @@ class Video:
             msg = "No se tienen las slides, se ejecuta automaticamente el metodo set_slides() para setearla en el atributo slides"
             warnings.warn(f"Warning........... {msg}")
 
-        self.transcription = fc.get_transcription(self.video_name, self.frames, self.slides, self.rgb, self.runtime, self.gpu_use) # los dos casos cubiertos 
+        self.transcription = fc.get_transcription(self.video_name, self.frames, self.slides, self.rgb, self.runtime, self.gpu_use, path, ocr) # los dos casos cubiertos 
 
     def clean_frames(self): 
         """ Itera sobre los frames comparando usando metricas de calidad de imagen para eliminar las que sean consideradas suficientemente similares
@@ -241,7 +237,7 @@ class Video:
         transcription_tesse = fc.get_transcription(self.video_name, self.frames, [], self.rgb, self.runtime, self.gpu_use, 2) # los dos casos cubiertos 
         print(transcription_tesse)
 
-    def improve_quality(model, ratio, self):
+    def improve_quality(self, model, ratio):
         """  Funcion mejora calidad de imagenes, ya sea la lista de frames o frames guardados localmente
         -------------------------------------------------------
         Input:
@@ -254,8 +250,13 @@ class Video:
         # self.frames
         if(self.runtime):
             for index, frame in enumerate(self.frames):
-                fc.upscale_img(frame, model, ratio, self.runtime, self.gpu_use)
-        print()
+                self.frames[index] = fc.upscale_img(frame, model, ratio, self.runtime, self.gpu_use)
+        else:
+            Frames = fc.ls(ruta = self.frames)
+            Frames.sort()
+            Frames = list(map(fc.addJ ,Frames))
+            for index, frame in enumerate(Frames):
+                fc.upscale_img(self.frames+frame, model, ratio, self.runtime, self.gpu_use)
 
 
 

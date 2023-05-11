@@ -14,12 +14,18 @@ from math import sqrt
 from math import floor 
 from skimage import img_as_float
 from skimage.metrics import structural_similarity as ssim
+from skimage.metrics import mean_squared_error as mse
+from skimage.metrics import peak_signal_noise_ratio as psnr
+from sewar.full_ref import uqi
 import pytesseract 
 from pytesseract import Output
 from cv2 import dnn_superres
 
 import gc
 import torch
+
+from sklearn.feature_extraction.text import TfidfVectorizer
+from nltk.corpus import stopwords
 
 def addJ (name):
     return str(name)+".jpg"
@@ -59,8 +65,9 @@ def download_video(url):
     except:
         return False, ""
 
-def getqua(frame1, frame2, rgb = False, me = 1): 
+def getqua(frame1, frame2, rgb = False, me = 4): 
     """ Funcion que compara dos frames con la metrica que indica el parametro "me"
+    1:SSIM, 2:dif, 3:mse, 4:psnr, 5:uqi
     -------------------------------------------------------
     Input:
         frame1 (str): ruta frames
@@ -104,8 +111,18 @@ def getqua(frame1, frame2, rgb = False, me = 1):
     elif(me == 2):
         dif = np.sum(im1 != im2)
         return dif/pixT
+    elif(me == 3):
+        mseV = mse(im1F, im2F)
+        return mseV
+    elif(me == 4):
+        psnrV = psnr(im1F, im2F, data_range=im2F.max() - im2F.min())
+        return psnrV
+    elif(me == 5):
+        uqiV = uqi(im1F, im2F)
+        return uqiV
+    
 
-def getdata(frames, rgb = False): 
+def getdata(frames, me, rgb = False): 
     """ Funcion que usando getqua() en frames ordenados entrega un array con los valores evaluados de frames contiguos
     -------------------------------------------------------
     Input:
@@ -120,7 +137,7 @@ def getdata(frames, rgb = False):
         for index, frame in enumerate(frames):
             if(index != 0):
                 frame2 = frame
-                qua =  getqua(frame1, frame2, rgb, 1) # SSIM
+                qua =  getqua(frame1, frame2, rgb, me) 
                 data = np.append(data, qua) 
                 frame1 = frame2
             else:
@@ -137,7 +154,7 @@ def getdata(frames, rgb = False):
             if(index != 0):
                 frame1 = frames+ str(anterior)+'.jpg'
                 frame2 = frames+ str(i)+'.jpg'
-                qua =  getqua(frame1, frame2, rgb, 1) # SSIM
+                qua =  getqua(frame1, frame2, rgb, me) 
                 # TODO anotar esto en documento
                 # TEST grafico
                 # qua =  getqua(frame1, frame2, rgb, 2) 
@@ -147,7 +164,7 @@ def getdata(frames, rgb = False):
             anterior = i
     return data
 
-def localmin(data):
+def localmin(data, coef = 3):
     """ Funcion que obtiene los minimos locales de la data entregada
     -------------------------------------------------------
     Input:
@@ -156,10 +173,13 @@ def localmin(data):
         counts[1] (int): numero de minimos locales encontrados
         pos (list): posiciones correspondiente a los minimos locales dentro del array data
     """
-    coef = 0.98
+    # coef = 0.98 # TODO definir respecto a la metrica elegida y descomentar
     a_min =  np.r_[True, data[1:] < data[:-1]] & np.r_[data[:-1] < data[1:], True] & np.r_[data < coef]
+    # a_min =  np.r_[True, data[1:] < data[:-1]] & np.r_[data[:-1] < data[1:], True] 
     # a_max =  np.r_[True, data[1:] > data[:-1]] & np.r_[data[:-1] > data[1:], True]
     unique, counts = np.unique(a_min, return_counts=True)
+    if(len(unique) == 1):
+        return(1, [0])
     pos = []
     for index, i in enumerate(a_min):
         if(i):
@@ -265,9 +285,6 @@ def easy(reader, frames, detail, rgb = False, ocr = 1, debugg = False): # lemati
             trans = trans + t + "\n"
             trans_l.append(t)
             for  pos, text, accu in result :	
-                print("pos")		
-                print(pos)		
-                exit(1)
                 if (c < count): 
                     dis = round(min_dis_sq(p, pos),2)
                     aux.append(dis)
@@ -295,7 +312,7 @@ def easy(reader, frames, detail, rgb = False, ocr = 1, debugg = False): # lemati
         
         flatten = list(num for sublist in ref_pos for num in sublist)
         if(len(flatten) == 0 ):
-            warnings.warn("Warning ........... [No hay texto encontrado en frame]")
+            warnings.warn(f"Warning ........... [No hay texto encontrado en frame {frames}]")
             return []
 
         clusters = clustering(ref_pos)
@@ -356,7 +373,15 @@ def easy(reader, frames, detail, rgb = False, ocr = 1, debugg = False): # lemati
                         for kndex, k in enumerate(j):
                             order[index][jndex][kndex] = trans_l[k]
                     else:
-                        order[index][jndex][0] = trans_l[j[0]]
+                        try: 
+                            aux_elem = trans_l[j[0]]
+                            order[index][jndex][0] = aux_elem
+                        except:
+                            try:
+                                aux_elem = trans_l[j]
+                                order[index][jndex][0] = aux_elem
+                            except:
+                                print("trans_l[j] > vacio")
             else:
                 if(isinstance(i[0], list)):
                     for jndex, j in enumerate(i[0]):
@@ -528,7 +553,7 @@ def write_json(data, filename= "default"):
     with  open(filename, "w") as f:
         json.dump(data, f, indent=4)
 
-def get_transcription(vname, frames, data = [], rgb = False, runtime = True, gpu_use = False, ocr = 1): # , lematiz = False
+def get_transcription(vname, frames, data = [], rgb = False, runtime = True, gpu_use = False, path = '' , ocr = 1): # , lematiz = False
     """ Funcion que itera sobre los frames/imagenes transcribiendolas usando algun OCR (easyOCR o teseract) 
     1 = easyOCR
     2 = teseract 
@@ -573,14 +598,17 @@ def get_transcription(vname, frames, data = [], rgb = False, runtime = True, gpu
                 # TODO: agregar coeficiente para tomar para caso de TESE porcentaje de confianza mayor a 0.8 aprox
 
     if (ocr == 1):
-        # filename = "order"
         filename = vname
         transcription = json
         if(not runtime):
-            write_json(json, filename)
-            return filename+".json"
+            write_json(json, path+filename)
+            return path+filename+".json"
     elif (ocr == 2):
-        return json
+        filename = vname
+        transcription = json
+        if(not runtime):
+            write_json(json, path+filename)
+            return path+filename+".json"
 
     return transcription
 
@@ -597,9 +625,6 @@ def isame(frame1, frame2, rgb = False, pix_lim = 0.001, ssimv_lim = 0.999, dbugg
     Output:
         state (boolean): indicador que indica si son considerados suficientemente similares 
     """
-    # COlOR
-    # im1 = cv2.imread(frame1)
-    # im2 = cv2.imread(frame2)
     #BLANCO Y NEGRO
     color = 0 # B/W
     multich = False
@@ -616,10 +641,7 @@ def isame(frame1, frame2, rgb = False, pix_lim = 0.001, ssimv_lim = 0.999, dbugg
     im2F = img_as_float(im2)
     
     # Aplicando metrica SSIM
-    # try:
     ssimV = ssim(im1F, im2F, multichannel=multich, data_range=im2F.max() - im2F.min())
-    # except:
-    #     ssimV = ssim(im1F, im2F, multichannel=False, data_range=im2F.max() - im2F.min())
     dif = np.sum(im1 != im2)
 
     # Dimensiones imagen
@@ -635,7 +657,6 @@ def isame(frame1, frame2, rgb = False, pix_lim = 0.001, ssimv_lim = 0.999, dbugg
         if (dbugg):
             print(" ----------------- dif %f ----------------- " % float(dif/pix_num))		
         state  = True
-    # ssimv_lim = 0.999
     elif(ssimV>ssimv_lim):	
         # Son escencial- la misma
         if (dbugg):
@@ -1049,3 +1070,60 @@ def upscale_img(img, model, ratio, runtime, gpu):
         # img = result
     # else:
     #     cv2.imwrite(f"./Outputs/IMG/{model}-{ratio}-{name}", result)
+
+def word_dif(json_f, txt):
+    """ funcion que obtiene la diferencia porcentual entre las palabras obtenidas mediante el proceso vs la transcripcion real del texto   
+    """
+    if(isinstance(json_f, list)):
+        slides = json_f.copy()
+    else:
+        f = open (json_f, "r")
+        slides = json.loads(f.read())
+
+    f_process = str(slides).replace("[", "").replace("],", "").replace("]", "").replace("'", "").lower()
+
+    f = open(txt,'r', encoding='utf-8')
+    f_real = " ".join(f.readlines())
+    f_real = (f_real.replace("\n", ' ')).lower()
+    # f_process = open(json,'r')
+
+    # *** Se usa TfidfVectorizer de sklearn para medir similitud ***
+    dif_tf = compare([f_process, f_real])
+    # **************************************************************
+
+    # *** Se evalua el % de coincidencia en palabras ***
+    lt_process = [i for i in f_process.split(' ') if len(i) > 0]
+    lt_real = [i for i in f_real.split(' ') if len(i) > 0]
+    dif_wused = word_perc(lt_process, lt_real)
+    # **************************************************************
+
+    return dif_tf, dif_wused
+
+def word_perc(lt_process, lt_real):
+    total = len(lt_real)
+    lt_inner = []
+
+    for i in lt_process:
+        if len(lt_real) == 0:
+            print('vacio')
+        if i in lt_real:
+            lt_inner.append(i)
+            lt_real.remove(i)
+
+    dif = (len(lt_inner)/total)
+    return dif
+
+def compare(corpus):
+    """
+    corpus (list): lista de strings
+    """
+    # from sklearn.feature_extraction.text import TfidfVectorizer
+    # from nltk.corpus import stopwords
+
+    st_words = stopwords.words('spanish')
+    vect = TfidfVectorizer(min_df=1, stop_words= st_words)                                                                                                                                                                                                   
+    tfidf = vect.fit_transform(corpus)                                                                                                                                                                                                                       
+    pairwise_similarity = tfidf * tfidf.T
+
+    # print(pairwise_similarity.mean(axis=0))
+    return((pairwise_similarity.A)[0,1])
