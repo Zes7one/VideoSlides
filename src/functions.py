@@ -62,7 +62,8 @@ def download_video(url):
         video = video.streams.get_highest_resolution()
         video.download()
         return True, title
-    except:
+    except Exception as e:
+        print(str(e))
         return False, ""
 
 def getqua(frame1, frame2, rgb = False, me = 4): 
@@ -1036,7 +1037,7 @@ def tese(ruta, lim_acc, debug = False):
     # print(results)
     return data
 
-def upscale_img(img, model, ratio, runtime, gpu):
+def upscale_img(img, pb_path, model, ratio, runtime, gpu):
     """ funcion que mejora imagen segun modelo y escala entregada
     Args:
         img (str): ruta hacia de imagen a mejorar
@@ -1051,7 +1052,8 @@ def upscale_img(img, model, ratio, runtime, gpu):
         image = img
         img = cv2.imread(img)
     # Read the desired model
-    path = f"./models/{model}_x{ratio}.pb"
+    # path = f"./models/{model}_x{ratio}.pb"
+    path = f"{pb_path}{model}_x{ratio}.pb"
     sr.readModel(path)
     if (gpu):
         # Set CUDA backend and target to enable GPU inference

@@ -5,22 +5,24 @@ with open("README.md", "r") as fh:
 
 setup(
     name="videoslides",
-    version='0.0.2',
+    version='0.0.9',
     description='Package made to obtain a text transcription from a video, with a flow from video to frames to structured frames to transcription in a json file ',
     long_description=long_description,
     long_description_content_type="text/markdown",
     py_modules=["videoslides", "functions"],
     package_dir={'':'src'},
     install_requires=[
-        "easyocr ~= 1.4.1",
-        "opencv-python-headless ~= 4.1.2.30",
-        "stanza ~= 1.4.0",
-        "numpy ~= 1.19.5",
-        "matplotlib ~= 3.3.4",
-        "pytube ~= 12.0.0",
-        "scikit-image ~= 0.17.2",
-        "validators ~= 0.20.0",
-        "nltk ~= 3.6.7"  
+        "easyocr >= 1.4.1",
+        "stanza >= 1.4.0",
+        "numpy >= 1.19.5",
+        "matplotlib >= 3.3.4",
+        "pytube >= 12.0.0",
+        "scikit-image >= 0.17.2",
+        "validators >= 0.20.0",
+        "nltk >= 3.6.7",
+        "opencv-python-headless >= 4.1.2.30",
+        "sewar >= 0.4.5",
+        "pytesseract >= 0.3.8"
     ],
     classifiers=[
         "Programming Language :: Python :: 3.6",
@@ -66,3 +68,8 @@ setup(
 # Subir a Pypi
 # pip install twine
 # twine upload dist/*
+
+
+# Subir a Pypi 2.0
+# py setup.py bdist_wheel sdist
+# twine upload --skip-existing dist/*

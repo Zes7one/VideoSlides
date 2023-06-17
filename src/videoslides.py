@@ -3,7 +3,7 @@ import warnings
 
 import cv2
 import validators
-
+from pathlib import Path
 import functions as fc
 
 
@@ -27,6 +27,7 @@ class Video:
             status, real_VideoName = fc.download_video(path)
             real_VideoName = real_VideoName.replace("|", "")
             if(not status):
+                print(status)
                 raise Exception("El link entregado no es un video")
             # RutaFolder = os.path.dirname(os.path.abspath(__file__))+"\\"
             RutaFolder = os.path.abspath(os.getcwd())+"\\"
@@ -46,9 +47,13 @@ class Video:
         # ------------ Se crea carpeta y se captura el video ------------
         self.frames_path = ""
         if(not runtime):
-            self.frames_path = RutaFolder+"F_"+self.video_name+"\\"
+            self.frames_path = RutaFolder+"F_"+self.video_name+"/"
+            print('Path(self.frames_path)')
+            print(self.frames_path)
+            print(Path(self.frames_path))
             if (not os.path.isdir(self.frames_path)):
-                os.mkdir(self.frames_path)
+                os.mkdir(Path(self.frames_path) ) # data_folder = Path("source_data/text_files/")
+                # os.mkdir(self.frames_path) # data_folder = Path("source_data/text_files/")
         vidcap = cv2.VideoCapture(RutaFolder+self.video_name+f".{extension}")
         self.video_cap = vidcap
         # ---------------------------------------------------------------
@@ -69,10 +74,10 @@ class Video:
         self.fps    = int(vidcap.get(cv2.CAP_PROP_FPS))
         # ------------ Se lee un frame y se obtiene las dimensiones ------------
         success,image = vidcap.read()	
-        if(not rgb):
-            image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) 
         if(not success):
             raise Exception("Problemas en la captura del video: video corrupto o formato incorrecto")
+        if(not rgb):
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) 
         width = int(image.shape[1] * scale / 100)
         height = int(image.shape[0] * scale / 100)
         dim = (width, height)
@@ -93,7 +98,8 @@ class Video:
                 if(runtime):
                     frames.append(resized)
                 else:
-                    cv2.imwrite(self.frames_path+"%d.jpg" % count, resized)     # save frame as JPEG file  
+                    # cv2.imwrite(Path(self.frames_path+f"{count}.jpg"), resized)     # save frame as JPEG file  
+                    cv2.imwrite(self.frames_path+f"{count}.jpg", resized)     # save frame as JPEG file  
             success,image = vidcap.read()
             if(not rgb):
                 image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) 
@@ -186,7 +192,7 @@ class Video:
 
         self.transcription = fc.get_transcription(self.video_name, self.frames, self.slides, self.rgb, self.runtime, self.gpu_use, path, ocr) # los dos casos cubiertos 
 
-    def clean_frames(self): 
+    def clean_frames(self, pix_lim = 0.001, ssimv_lim = 0.999): 
         """ Itera sobre los frames comparando usando metricas de calidad de imagen para eliminar las que sean consideradas suficientemente similares
         para el caso de no estar runtime : se elimina el frame de la ruta 
         caso runtime: se crea una nueva lista con los frames correspondientes y se retorna  
@@ -197,9 +203,9 @@ class Video:
             No aplica
         """
         if(self.runtime):
-            self.frames = fc.clean(self.frames, self.rgb, self.pix_lim, self.ssimv_lim)
+            self.frames = fc.clean(self.frames, self.rgb, pix_lim, ssimv_lim)
         else:
-            fc.clean(self.frames, self.rgb, self.pix_lim, self.ssimv_lim)
+            fc.clean(self.frames, self.rgb, pix_lim, ssimv_lim)
 
     def clean_transc(self):
         """  Desde una transcripcion formateada se eliminan redundancias y luego se eliminan los frames:
@@ -237,7 +243,7 @@ class Video:
         transcription_tesse = fc.get_transcription(self.video_name, self.frames, [], self.rgb, self.runtime, self.gpu_use, 2) # los dos casos cubiertos 
         print(transcription_tesse)
 
-    def improve_quality(self, model, ratio):
+    def improve_quality(self, path, model, ratio):
         """  Funcion mejora calidad de imagenes, ya sea la lista de frames o frames guardados localmente
         -------------------------------------------------------
         Input:
@@ -250,13 +256,13 @@ class Video:
         # self.frames
         if(self.runtime):
             for index, frame in enumerate(self.frames):
-                self.frames[index] = fc.upscale_img(frame, model, ratio, self.runtime, self.gpu_use)
+                self.frames[index] = fc.upscale_img(frame, path, model, ratio, self.runtime, self.gpu_use)
         else:
             Frames = fc.ls(ruta = self.frames)
             Frames.sort()
             Frames = list(map(fc.addJ ,Frames))
             for index, frame in enumerate(Frames):
-                fc.upscale_img(self.frames+frame, model, ratio, self.runtime, self.gpu_use)
+                fc.upscale_img(self.frames+frame, path, model, ratio, self.runtime, self.gpu_use)
 
 
 
