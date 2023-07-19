@@ -8,19 +8,30 @@ import functions as fc
 
 
 class Video:
-    def __init__(self, path, scale = 100 , saltos = 1, rgb = False, runtime = True, lematiz = False, gpu_use = False, pix_lim = 0.001, ssimv_lim = 0.999): # scale:percent of original size
+    def __init__(self, path, scale = 100 , jumps = 1, rgb = False, runtime = True, gpu_use = False, pix_lim = 0.001, ssimv_lim = 0.999, re_run = False): # scale:percent of original size
         """ Clase para manejar el video, frames y transcripcion 
         path (str): link del video o a la ruta local del archivo mp4
         scale (int): numero que indica de que escala del tamaño real de los frames se desean extraer [0,100]
-        saltos (int): numero de saltos periodicos entre lecturas de frames
+        jumps (int): numero de saltos periodicos entre lecturas de frames
+        rgb (boolean): indicador booleano si se da uso de banda RGB (True) o solo banda blanco y negro (False)
         runtime (boolean): False -> para usar la data de frames de forma persistente (archivos) o True -> en ejecucion (objetos y listas) 
+        gpu_use (boolean): indicador para activar o no el uso de la GPU 
         """
         link = True
         self.rgb = rgb
         self.runtime = runtime
-        self.lematiz = lematiz
         self.gpu_use = gpu_use
         self.pix_lim, self.ssimv_lim = pix_lim, ssimv_lim
+        if (re_run != False):
+            if (re_run == 'frame'):
+                self.frames_path = path
+                self.video_name = path.split('/')[-1]
+                return
+            elif (re_run == 'trans'):
+                self.transcription = path
+                self.video_name = path.split('/')[-1]
+                return
+
         # ------------ Video de Youtube ------------
         extension = "mp4"
         if (validators.url(path)):
@@ -92,7 +103,7 @@ class Video:
             frames = self.frames_path
         
         while (count < self.num_frames-1):
-            if(count%(self.fps*saltos) == 0):
+            if(count%(self.fps*jumps) == 0):
                 # resize image
                 resized = cv2.resize(image, dim, interpolation = cv2.INTER_AREA)
                 if(runtime):
@@ -128,6 +139,13 @@ class Video:
         return self.frames
     # --------------- SETTERS ---------------
     def set_frames_path(self, frames_path):
+        """ Funcion de seteo de atributo frames_path
+        -------------------------------------------------------
+        Input:
+            No aplica
+        Output:
+            No aplica
+        """
         self.frames_path = frames_path
 
     def set_data(self, me): # se setea la data segun este usandose de forma runtime o no
@@ -220,7 +238,7 @@ class Video:
         self.transcription, lt_delet = fc.clean_transc(self.transcription)
         self.frames = fc.delete_frames(self.frames, lt_delet)
 
-    def lematize(self):
+    def lematize(self, dest_file = 'default.json' ):
         """  Funcion aplica lematizacion sobre la transcripcion almacenada en self.transcription, reemplazando la original
         -------------------------------------------------------
         Input:
@@ -228,20 +246,7 @@ class Video:
         Output:
             No aplica
         """
-        self.transcription = fc.lematize(self.transcription, self.gpu_use)
-
-    def improve_num(self):
-        """  Funcion corrige digitos de la transcripcion inicial, utilizando el OCR de Tesseract 
-        -------------------------------------------------------
-        Input:
-            No aplica
-        Output:
-            No aplica
-        """
-        # tomar frames finales
-        print("ENTRO")
-        transcription_tesse = fc.get_transcription(self.video_name, self.frames, [], self.rgb, self.runtime, self.gpu_use, 2) # los dos casos cubiertos 
-        print(transcription_tesse)
+        self.transcription = fc.lematize(self.transcription, self.gpu_use, dest_file)
 
     def improve_quality(self, path, model, ratio):
         """  Funcion mejora calidad de imagenes, ya sea la lista de frames o frames guardados localmente
@@ -253,7 +258,6 @@ class Video:
         Output:
             No aplica
         """
-        # self.frames
         if(self.runtime):
             for index, frame in enumerate(self.frames):
                 self.frames[index] = fc.upscale_img(frame, path, model, ratio, self.runtime, self.gpu_use)
@@ -264,25 +268,13 @@ class Video:
             for index, frame in enumerate(Frames):
                 fc.upscale_img(self.frames+frame, path, model, ratio, self.runtime, self.gpu_use)
 
-
-
-        # TODO: aplicar tesseract en los casos que se encuentre un digito o cifra en self.transcription (puede ir despues de lematization)
-        # TODO: REVISAR SI EXISTE ALGUNA FORMA DE ENTREGAR MAYOR VALOR A LA ESTRUCTURACION ( ETIQUETAS ? : TITTLE, COMMENT, NAMES, NUMBER OR DATES)
-
-
-        # TODO: REVISAR FORMAS DE OBTENER CONTEXTO DE INFO EN UNA LAMINA (QUIZAS FILTRAR Y OMITIR INFORMACION NO RELEVANTE)
-        # TODO: N-GRAMA PARA LA CORRECCION -> REVISAR QUE PALABRAS SE REPITEN MAS Y QUIZAR HACER UNA ANALISIS ESTADISTICO CON ESTO (UN PLUS (?))
-        # TODO: MENCIONAR QUE SE PUEDE MEJORAR EL CALCULO DE DISTANCIA ENTRE CUADRADOS DE TEXTO -> MEJORAR ESTRUCTURACION EN CASO DE TEXTO EN DIAGONAL
-        # TODO: quizas quitar parametros desde la definicion de la clase y dejaros seteables luego de su creacion
-        # TODO : dejar como parametro editable el limite para la limpieza por texto
-
-
-
-
-        # DONE: Dejar con el formato de result de EASYOCR el resultado obtenido con tesseract 
-        # DONE: MEJORAR FUNCION PARA ELEGIR FRAMES DESDE SLIDE (actual es last_one) -> AGREGAR A DOCUMENTO
-        # DONE: REVISAR QUE TAN UTIL SERIA EL RTF (no mucho, se puede agregar formato, y quizas imagenes, -> buscar valor o uso de los RTF)
-        
-        # DONE: eleccion de lematizar
-        # DONE dar libertad de los rangos a los cuales se desea filtrar
-        # DONE revisar cambios necesarios para implementar solo escala de grises ( o dar la opcion de elegir) -> agregar comparacion al documento
+    # def improve_num(self):
+        # """  Funcion corrige digitos de la transcripcion inicial, utilizando el OCR de Tesseract 
+        # -------------------------------------------------------
+        # Input:
+        #     No aplica
+        # Output:
+        #     No aplica
+        # """
+        # # tomar frames finales
+        # transcription_tesse = fc.get_transcription(self.video_name, self.frames, [], self.rgb, self.runtime, self.gpu_use, 2) # los dos casos cubiertos 

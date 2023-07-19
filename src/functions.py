@@ -63,7 +63,7 @@ def download_video(url):
         video.download()
         return True, title
     except Exception as e:
-        print(str(e))
+        warnings.warn(f"Warning ........... [Problema en descarga video: {str(e)}]")
         return False, ""
 
 def getqua(frame1, frame2, rgb = False, me = 4): 
@@ -122,7 +122,6 @@ def getqua(frame1, frame2, rgb = False, me = 4):
         uqiV = uqi(im1F, im2F)
         return uqiV
     
-
 def getdata(frames, me, rgb = False): 
     """ Funcion que usando getqua() en frames ordenados entrega un array con los valores evaluados de frames contiguos
     -------------------------------------------------------
@@ -382,7 +381,7 @@ def easy(reader, frames, detail, rgb = False, ocr = 1, debugg = False): # lemati
                                 aux_elem = trans_l[j]
                                 order[index][jndex][0] = aux_elem
                             except:
-                                print("trans_l[j] > vacio")
+                                warnings.warn(f"Warning ........... [trans_l[j] vacio]")
             else:
                 if(isinstance(i[0], list)):
                     for jndex, j in enumerate(i[0]):
@@ -512,11 +511,8 @@ def get_trans_slide(reader, array, frames, rgb = False):
         Frames = ls(ruta = frames)
         Frames.sort()
         frames = list(map(addJ ,Frames))
-        # frames = Frames
         remote = False
 
-        # print("Leer data de frames -> dejarla en una lista de transcripciones -> cual tenga mayor numero de palabas es el seleccionado (comparar el numero de palabras coinidentes)")
-    # else:
     list_ret = []
     for index, i in enumerate(array):
         bigger = []
@@ -656,12 +652,12 @@ def isame(frame1, frame2, rgb = False, pix_lim = 0.001, ssimv_lim = 0.999, dbugg
     if ( dif/pix_num < pix_lim):
         #  Son escencial- la misma
         if (dbugg):
-            print(" ----------------- dif %f ----------------- " % float(dif/pix_num))		
+            print(f" ----------------- dif {float(dif/pix_num)} ----------------- ")		
         state  = True
     elif(ssimV>ssimv_lim):	
         # Son escencial- la misma
         if (dbugg):
-            print(" ----------------- ssimV %f ----------------- " % ssimV)		
+            print(f" ----------------- ssimV {ssimV} ----------------- ")		
         state  = True
 
     if (dbugg):
@@ -723,7 +719,7 @@ def clean(frames, rgb = False, pix_lim = 0.001, ssimv_lim = 0.999):
         Frames = frames
     return Frames
 
-def ploteo(nombre, data): 
+def ploteo(nombre, data, coef = 1 ,debugg = False): 
     """ Funcion que grafica data 1D, y en caso de no entregarla la obtiene usando getdata(f_ruta)
     -------------------------------------------------------
     Input:
@@ -732,12 +728,13 @@ def ploteo(nombre, data):
     Output:
         "OK" (str)
     """
-    print(f" -------- {nombre} -------- ")
+    if (debugg) :
+        print(f" -------- {nombre} -------- ")
     # min, minl = localmin(data)
-    classic(data, nombre)
+    classic(data, nombre, coef)
     return "OK"
 
-def classic(data, nombre): 
+def classic(data, nombre, coef): 
     """ Grafica data 1D, indicando el nombre, minimo y maximo de la data
     -------------------------------------------------------
     Input:
@@ -748,11 +745,18 @@ def classic(data, nombre):
     """
     minim = np.amin(data)
     maxim = np.amax(data)
-    plt.plot(data, label='data', color='b')
-    plt.legend(bbox_to_anchor=(1.05, 1),loc='upper left', borderaxespad=0.)
+    plt.plot(data, label='SIMM', color='b')#, label='SIMM')
+
+    if (coef != 1):
+        x = [0, len(data)]
+        y2 = [coef, coef]
+        plt.plot(x, y2, '-.', color='red', label='COEF')
+
+    plt.legend()
+    # plt.legend( ['SIMM','COEFF'], bbox_to_anchor=(1.05, 1),loc='upper left') #, borderaxespad=0.)
     plt.xlabel("Par de frames")
     plt.ylabel("SIMM par de frames")
-    number_of_diapos, pos = localmin(data)
+    number_of_diapos, pos = localmin(data, coef) 
     plt.title(f"{nombre} ({number_of_diapos})")
     plt.show()
 
@@ -903,7 +907,6 @@ def lemat(text, gpu_use = False):
     Output:
         ret (str): string con texto lematizado
     """
-    # stanza.download('es')
     gc.collect()
     torch.cuda.empty_cache()
     nlp = stanza.Pipeline('es', verbose= False,  use_gpu = gpu_use) # pos_batch_size=3000
@@ -912,10 +915,9 @@ def lemat(text, gpu_use = False):
     for sent in doc.sentences:
         for word in sent.words:
             ret = ret + " " + word.lemma    
-            # print(f'word: {word.text} \tlemma: {word.lemma}') 
     return ret
 
-def lemat2(nlp, text):
+def lemat2(nlp, text, complete = False):
     """ Funcion que lematiza el texto recibido
     -------------------------------------------------------
     Input:
@@ -930,35 +932,17 @@ def lemat2(nlp, text):
     for sent in doc.sentences:
         for word in sent.words:
             ret = ret + " " + word.lemma    
+            # if complete:
+            #     ret += '\n'
+        if complete:
+            ret += '\n'
     return ret
 
-def pos(nlp, text): # PEND
-    """ Funcion pend
-    -------------------------------------------------------
-    Input:
-        nlp: stanza.Pipeline
-        text (str): string con oración o parrafo a ser 
-        gpu_use (boolean): indicador para activar o no el uso de la GPU 
-    Output:
-        ret (str): string con texto procesado
-    """
-    doc = nlp(text)
-    ret = ""
-    for sent in doc.sentences:
-        for word in sent.words:
-            # ret = ret + " " + word.lemma  
-            if ( word.feats != None and "NumForm=Digit" in word.feats ):
-                print( type(word.feats), "DIGITO", word.text )
-            # print(f'word: {word.text} \tlemma: {word.lemma} \tpos: {word.pos} \tfeats: {word.feats}  ')  
-            # if():
-    return ret
-
-
-def lematize(transcription, gpu_use = False):
+def lematize(transcription, gpu_use = False, dest_file = 'default.json'):
     """ Funcion que lematiza transcripcion desde un array o una carpeta
     -------------------------------------------------------
     Input:
-        transcription (str): string con oración o parrafo a ser lematizado
+        transcription (str): string con oración/parrafo a ser lematizado o ruta del archivo json
         gpu_use (boolean): indicador para activar o no el uso de la GPU 
     Output:
         transcription (str o list): string con ruta al json o lista de listas con la transcripcion
@@ -990,9 +974,9 @@ def lematize(transcription, gpu_use = False):
     if(isinstance(transcription, list)):
         return slides
     else:
-        filename = transcription.replace(".json", "")
+        filename = dest_file.replace(".json", "")
         write_json(slides, filename)
-        return transcription
+        return dest_file
 
 def tese(ruta, lim_acc, debug = False): 
     """ Funcion que desde un frame/imagene obtiene una transcripcion usando OCR tesseract
@@ -1008,16 +992,8 @@ def tese(ruta, lim_acc, debug = False):
     image = cv2.imread(ruta, 0)
     conf = f'--psm 6'
     coefic = lim_acc*100
-    # conf = f'--psm 6 -c tessedit_char_whitelist=0123456789.%,/+-*'
-    # rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    # results = pytesseract.image_to_data(rgb, output_type=Output.DICT)
     results = pytesseract.image_to_data(image, lang='eng', config=conf, output_type=Output.DICT)
     data = pytesseract.image_to_string(image, lang='eng', config=conf)
-    # print(data)
-    # [print(i, results[i]) for i in results ]
-    # exit(1)
-    # [print(i) for i in results ]
-
 
     conf = [results[i] for i in results if i == 'conf'][0]
     conf = [float(i) for i in conf]
@@ -1028,14 +1004,8 @@ def tese(ruta, lim_acc, debug = False):
     text = [j for jndex, j in enumerate([results[i] for i in results if i == 'text'][0]) if float(conf[jndex]) > coefic]
     conf = [i for i in conf if i > coefic]
 
-    # [print(f"{i} --> {conf[index]}") for index, i in enumerate(text)]  
     compilado = [([[left[index], top[index]], [left[index]+width[index],top[index]], [left[index]+width[index], top[index]+height[index]], [left[index], top[index]+height[index]]], i, conf[index]) for index, i in enumerate(text)]
     return compilado
-    # [print(i) for i in compilado ]
-
-    [print(f"{conf[index]} --> {i}") for index, i in enumerate(text) if float(conf[index]) > 70] 
-    # print(results)
-    return data
 
 def upscale_img(img, pb_path, model, ratio, runtime, gpu):
     """ funcion que mejora imagen segun modelo y escala entregada
@@ -1102,12 +1072,15 @@ def word_dif(json_f, txt):
     return dif_tf, dif_wused
 
 def word_perc(lt_process, lt_real):
+    """ Funcion obtiene el porcentaje de palabras del texto en lt_process dentro de lt_real
+    
+    """
     total = len(lt_real)
     lt_inner = []
 
     for i in lt_process:
         if len(lt_real) == 0:
-            print('vacio')
+            warnings.warn(f"Warning ........... [lista con texto real vacia]")
         if i in lt_real:
             lt_inner.append(i)
             lt_real.remove(i)
@@ -1127,5 +1100,4 @@ def compare(corpus):
     tfidf = vect.fit_transform(corpus)                                                                                                                                                                                                                       
     pairwise_similarity = tfidf * tfidf.T
 
-    # print(pairwise_similarity.mean(axis=0))
     return((pairwise_similarity.A)[0,1])
