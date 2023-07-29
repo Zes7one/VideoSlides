@@ -16,6 +16,8 @@ class Video:
         rgb (boolean): indicador booleano si se da uso de banda RGB (True) o solo banda blanco y negro (False)
         runtime (boolean): False -> para usar la data de frames de forma persistente (archivos) o True -> en ejecucion (objetos y listas) 
         gpu_use (boolean): indicador para activar o no el uso de la GPU 
+        re_run (False or string): indicador si la ejecucion actual es reproceso o no, y en caso de serlo desde que tipo de informacion se inicia, 
+                frame-> path asigna ruta de frames y trans-> asigna path a atributo transcription
         """
         link = True
         self.rgb = rgb
@@ -123,7 +125,7 @@ class Video:
         self.slides = []
 
     # --------------- GETTERS ---------------
-    def get_number_frames(self):  # numero de frames
+    def get_num_frames(self):  # numero de frames
         return self.num_frames
     def get_fps(self):            # fotogramas por segundo del video
         return self.fps
@@ -137,6 +139,12 @@ class Video:
         return self.video_cap
     def get_frames(self):
         return self.frames
+    def get_dim(self):
+        return self.dim
+    def get_data(self):
+        return self.data
+    def get_slides(self):
+        return self.slides
     # --------------- SETTERS ---------------
     def set_frames_path(self, frames_path):
         """ Funcion de seteo de atributo frames_path
@@ -162,7 +170,9 @@ class Video:
         """ divide y obtiene los frames que contienen la mayor parte de la informacion de cada slide
         -------------------------------------------------------
         Input:
-            posiciones (array): lista con posiciones de los frames elegios para conformar el conjunto final de diapositivas (opcional)
+            me (int): metrica a usar para comparar los frames en la obtencion de minimos -> diapositivas
+            posiciones (array): (opcional) lista con posiciones de los frames elegidos para conformar el conjunto final de diapositivas, sin utilizar el proceso de seleecion automatica.
+            coef (int): factor limitador sobre el numero de minimos considerados
         Output:
             No aplica
         """

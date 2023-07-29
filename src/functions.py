@@ -46,7 +46,8 @@ def download_video(url):
     Input:
         url (str): link del video de youtube
     Output:
-        No aplica
+        (boolean): True para descarga exitosa y en caso contrario False 
+        (str): string con el nombre del video descargado, en caso fallido string vacio
     """
     ''' 
     CAMBIOS QUE REQUIERE EN CIPHER.PY (DOCUMENTOS DE LA LIBRERIA)
@@ -71,8 +72,8 @@ def getqua(frame1, frame2, rgb = False, me = 4):
     1:SSIM, 2:dif, 3:mse, 4:psnr, 5:uqi
     -------------------------------------------------------
     Input:
-        frame1 (str): ruta frames
-        frame2 (str): ruta frames
+        frame1 (stro o numpy.ndarray): ruta o informacion frame
+        frame2 (str o numpy.ndarray): ruta o informacion frame
         rgb (boolean): indicador de uso de 3 bandas de color (RGB, True) o solo una (B/W, False)
         me (int): metrica a usar para comparar los frames
     Output:
@@ -123,10 +124,12 @@ def getqua(frame1, frame2, rgb = False, me = 4):
         return uqiV
     
 def getdata(frames, me, rgb = False): 
-    """ Funcion que usando getqua() en frames ordenados entrega un array con los valores evaluados de frames contiguos
+    """ Funcion que usando getqua() en frames ordenados entrega un array con los valores de similitud de cada par de frames contiguos
     -------------------------------------------------------
     Input:
         frames (str): ruta de carpeta de frames o (list): array de imagenes cv2
+        me (int): metrica a usar para comparar los frames
+        rgb (boolean): indicador de uso de 3 bandas de color (RGB, True) o solo una (B/W, False)
     Output:
         data (list): array ordenado con numeros enteros obtenidos evaluando frames contiguos
     """
@@ -169,6 +172,7 @@ def localmin(data, coef = 3):
     -------------------------------------------------------
     Input:
         data (list): array ordenado con numeros enteros 1D
+        coef (int): factor limitador sobre el numero de minimos considerados
     Output:
         counts[1] (int): numero de minimos locales encontrados
         pos (list): posiciones correspondiente a los minimos locales dentro del array data
@@ -247,7 +251,7 @@ def easy(reader, frames, detail, rgb = False, ocr = 1, debugg = False): # lemati
         frames (str): ruta a carpeta de frames o imagen (numpy array)
         detail (str): nombre de la extension de la carpeta de bloques
         rgb (boolean): indicador de uso de 3 bandas de color (RGB, True) o solo una (B/W, False)
-        gpu_use (boolean): indicador para activar o no el uso de la GPU 
+        ocr (int): indicador de que OCR es usado para obtner la transcripcion, 1 = easyOCR o 2 = teseract 
         debugg (boolean): True -> grafica sobre la imagen los bloques de texto reconocidos
     Output:
         order (list): lista con la transcripcion estructurada 
@@ -404,7 +408,7 @@ def easy(reader, frames, detail, rgb = False, ocr = 1, debugg = False): # lemati
         return (" ").join(result)
 
 def deep_index(distance, word):
-    """ Funcion que entrega los indices de puntos a los cuales corresponde la distancia indicada en w, dentro de la lista triangular distance (no flatten)
+    """ Funcion que entrega los indices de puntos a los cuales corresponde la distancia indicada en word, dentro de la lista triangular distance (no flatten)
     -------------------------------------------------------
     Input:
         distance (list(lists(int))): lista de listas con distancias entre bloques de texto, (estructura triangular: [a distancia con b, c, d, e] [b distancia con c, d, e] ...)
@@ -437,7 +441,6 @@ def clustering(array2):
         minim = min(flatten)
         if (minim > metrica):
             # "existen aislados"
-            # TODO(?) :Agregar solos los que no alcanzaron en ret_array2 
             break
         ind = flatten.index(minim) 
         indx, indy = deep_index(array2, minim)        
@@ -464,19 +467,19 @@ def clustering(array2):
     return(ret_array2)
 
 def select(array, frames, types = 0, rgb = False, gpu_use = False): 
-    """ Obtiene un frame por cada sub lista dentro de "array"
+    """ selecciona un frame por cada sub lista dentro de "array", obteniendo una lista de posiciones de los frames seleccionados
     types
     0 : Obtiene los ultimos elementos 
     1 : Obtiene los que posean mas informacion (get_trans_slide).
     -------------------------------------------------------
     Input:
-        array (list): lista de listas
+        array (list): lista de listas, agrupacion de frames por diapositiva
         frames (str): ruta de carpeta de frames o (list): array de imagenes cv2
         types (int): indicador del tipo de selector a usar; 0 para el ultimo de cada lista, 1 para usar get_trans_slide
         rgb (boolean): indicador de uso de 3 bandas de color (RGB, True) o solo una (B/W, False)
         gpu_use (boolean): indicador para activar o no el uso de la GPU 
     Output:
-        retorno (list) 
+        retorno (list): lista del nombre de los frames seleccionados
     """
     largo = len(array)
     retorno =  []
@@ -491,7 +494,7 @@ def select(array, frames, types = 0, rgb = False, gpu_use = False):
     return retorno
 
 def get_trans_slide(reader, array, frames, rgb = False):
-    """ Obtiene una lista de string, con las transcripciones de los frames indicados en array
+    """ Obtiene una lista de posiciones, con las transcripciones de los frames indicados en array compara para seleccionar
     -------------------------------------------------------
     Input:
         reader (class): clase easyocr.easyocr.Reader usada para la transcripcion de frames
@@ -499,7 +502,7 @@ def get_trans_slide(reader, array, frames, rgb = False):
         frames (str): ruta a carpeta de frames o imagen (numpy array)
         rgb (boolean): indicador de uso de 3 bandas de color (RGB, True) o solo una (B/W, False)
     Output:
-        list_ret (list) 
+        list_ret (list): lista de posiciones de los frames seleccionados
     """
     debugg = False
     color = 0 # B/W
@@ -542,7 +545,7 @@ def write_json(data, filename= "default"):
     -------------------------------------------------------
     Input:
         data (list o dict): data estructurada en listas o diccionarios 
-        filename (str): nombre del archivo incluyendo la extension
+        filename (str): ruta del archivo con el nombre del mismo, excluyendo la extension 
     Output:
         No aplica
     """
@@ -560,11 +563,12 @@ def get_transcription(vname, frames, data = [], rgb = False, runtime = True, gpu
         frames (str): ruta de carpeta de frames o (list): array de imagenes cv2
         data (list): array con posiciones, usadas como filtro en la seleccion de imagenes
         rgb (boolean): indicador de uso de 3 bandas de color (RGB, True) o solo una (B/W, False)
-        runtime (boolean):
+        runtime (boolean): indicador de modo de manejo de frames (True: en numpy.array, False: en rutas de los frames)
         gpu_use (boolean): indicador para activar o no el uso de la GPU 
+        path (str): ruta destino del archivo json con la transcripcion (necesario solo para caso runtime=False)
         ocr (int): indicador de que OCR es usado para obtner la transcripcion, 1 = easyOCR o 2 = teseract 
     Output:
-        transcription (str o list): texto recopilado de cada frame unido en una sola estuctura
+        transcription (str o list): texto recopilado de cada frame unido en una sola estuctura, ya sea en formato de array o string de la ruta del archivo
     """
     if(isinstance(frames, list)):
         Frames = frames
@@ -586,10 +590,9 @@ def get_transcription(vname, frames, data = [], rgb = False, runtime = True, gpu
             if (ocr == 1):
                 gc.collect()
                 torch.cuda.empty_cache()
-                reader = easyocr.Reader(['en'], gpu=gpu_use) # this needs to run only once to load the model into memory
+                reader = easyocr.Reader(['en'], gpu=gpu_use) 
                 json.append(easy(reader, rute, 1, rgb, 1))
             elif (ocr == 2):
-                # transcription = transcription + tese(rute, False) + "\n\n"
                 reader = 1
                 json.append(easy(reader, rute, 1, rgb, 2))
                 # TODO: agregar coeficiente para tomar para caso de TESE porcentaje de confianza mayor a 0.8 aprox
@@ -613,8 +616,8 @@ def isame(frame1, frame2, rgb = False, pix_lim = 0.001, ssimv_lim = 0.999, dbugg
     """ Compara dos frames usando el porcentaje de pixeles que difieren como tambien el valor para SSIM entre ellos
     -------------------------------------------------------
     Input:
-        frame1 (str): ruta de primer frame
-        frame2 (str): ruta de segundo frame
+        frame1 (str): ruta del primer frame
+        frame2 (str): ruta del segundo frame
         rgb (boolean): indicador de uso de 3 bandas de color (RGB, True) o solo una (B/W, False)
         pix_lim (float): indicador de limite para filtrar imagenes segun metrica de porcentaje de pixeles cambiantes
         ssimv_lim (float): indicador de limite para filtrar imagenes segun metrica SSIM
@@ -672,7 +675,7 @@ def isame(frame1, frame2, rgb = False, pix_lim = 0.001, ssimv_lim = 0.999, dbugg
 
 def clean(frames, rgb = False, pix_lim = 0.001, ssimv_lim = 0.999): 
     """ Funcion que usando isame() filtra las imagenes que son consideradas iguales (dejando solo una de ellas)
-    para el caso de no estar runtime : se elimina el frame de la ruta 
+    para el caso de runtime falso : se elimina el frame de la ruta 
     caso runtime: se crea una nueva lista con los frames correspondientes y se retorna   
     -------------------------------------------------------
     Input:
@@ -725,6 +728,8 @@ def ploteo(nombre, data, coef = 1 ,debugg = False):
     Input:
         nombre (str): nombre de la data (video)
         data (list): lista con valores obtenidos de la comparacion de frames contiguos
+        coef (int): factor limitador sobre el numero de minimos considerados
+        dbugg (boolean): True en caso de querer visualizar el nombre entregado
     Output:
         "OK" (str)
     """
@@ -740,6 +745,7 @@ def classic(data, nombre, coef):
     Input:
         data (list): array ordenado con numeros enteros 1D
         nombre (str): nombre de la data (video)
+        coef (int): factor limitador sobre el numero de minimos considerados
     Output:
         no aplica
     """
@@ -764,9 +770,10 @@ def clean_transc(transc):
     """ Desde una transcripcion en formato de lista se eliminan redundancias y se retorna la nueva lista
     -------------------------------------------------------
     Input:
-        transc (list):  lista de listas con texto transcrito
+        transc (list o str): lista de listas con texto transcrito o ruta de archivo json
     Output:
-        transc 
+        transc (list o str): lista de listas con texto transcrito filtrado o ruta de archivo json filtrado
+        del (list): lista binaria con 1 en la posicion de un frame eliminado
     """
     debugg = False
     limite = 0.9
@@ -854,7 +861,7 @@ def delete_frames(frames, lt_delet, tipo = 0):
         lt_delet (list):  lista ordenada de frames a ser eliminados (1 en posicion de frames a eliminar, 0 sino se elimina) o (numero de las posiciones a mantenerse, ej: [0,3,7])
         tipo (int): indicador si se usara la primera o segunda estructura para la lista lt_delet
     Output:
-        frames (str): ruta de carpeta de frames o (list): array de imagenes cv2
+        Frames (str): ruta de carpeta de frames o (list): array de imagenes cv2
     """
     if(isinstance(frames, list)):
         Frames = frames.copy()
@@ -899,7 +906,7 @@ def delete_frames(frames, lt_delet, tipo = 0):
     return Frames
 
 def lemat(text, gpu_use = False):
-    """ Funcion que lematiza el texto recibido
+    """ Funcion que lematiza el texto recibido, inicialdo internamente el pipeline de stanza
     -------------------------------------------------------
     Input:
         text (str): string con oración o parrafo a ser lematizado
@@ -921,7 +928,7 @@ def lemat2(nlp, text, complete = False):
     """ Funcion que lematiza el texto recibido
     -------------------------------------------------------
     Input:
-        nlp: stanza.Pipeline
+        nlp (class): stanza.Pipeline
         text (str): string con oración o parrafo a ser lematizado
         gpu_use (boolean): indicador para activar o no el uso de la GPU 
     Output:
@@ -944,6 +951,7 @@ def lematize(transcription, gpu_use = False, dest_file = 'default.json'):
     Input:
         transcription (str): string con oración/parrafo a ser lematizado o ruta del archivo json
         gpu_use (boolean): indicador para activar o no el uso de la GPU 
+        dest_file (str): ruta de archivo de salida, incluyendo nombre y extension archivo
     Output:
         transcription (str o list): string con ruta al json o lista de listas con la transcripcion
     """
@@ -979,10 +987,12 @@ def lematize(transcription, gpu_use = False, dest_file = 'default.json'):
         return dest_file
 
 def tese(ruta, lim_acc, debug = False): 
-    """ Funcion que desde un frame/imagene obtiene una transcripcion usando OCR tesseract
+    """ Funcion que desde un frame/imagen obtiene una transcripcion usando OCR tesseract, 
+    entregandolo en un formato estandar usado por el sistema EasyOCR
     -------------------------------------------------------
     Input:
         ruta (str): ruta de frame/imagen a transcribir
+        lim_acc (int): factor minimo de confianza usado para filtrar las palabras extraidas con el sistema OCR
         debug (boolean): indicador si se quiere o no mostrar la imagen a transcribir
     Output:
         data (str): transcripcion de la imagen a texto
@@ -1009,20 +1019,21 @@ def tese(ruta, lim_acc, debug = False):
 
 def upscale_img(img, pb_path, model, ratio, runtime, gpu):
     """ funcion que mejora imagen segun modelo y escala entregada
-    Args:
+    Input:
         img (str): ruta hacia de imagen a mejorar
+        pb_path (str): ruta del archivo pb del modelo a usar
         model (str): nombre del modelo a usar ('edsr', 'espcn', 'fsrcnn' o 'lapsrn')
         ratio (int): escala a aplicar a la imagen (2, 3 o 4)
-        replace (boolean): indicador para reemplazo de img mejorada 
         runtime (boolean): indicador de modo de manejo de imagenes (True: imagen en numpy.array, False: entonces img es ruta de la imagen)
         gpu (boolean): indicador de uso de gpu
+    Output:
+        imagen en array cv2 para runtime True y 'ok' para caso contrario
     """
     sr = dnn_superres.DnnSuperResImpl_create()
     if not runtime:
         image = img
         img = cv2.imread(img)
     # Read the desired model
-    # path = f"./models/{model}_x{ratio}.pb"
     path = f"{pb_path}{model}_x{ratio}.pb"
     sr.readModel(path)
     if (gpu):
@@ -1033,7 +1044,7 @@ def upscale_img(img, pb_path, model, ratio, runtime, gpu):
     sr.setModel(model.lower(), ratio)
     result = sr.upsample(img)
     # Save the image
-    # if replace:
+    # if replace: # replace (boolean): indicador para reemplazo de img mejorada 
     if not runtime:
         cv2.imwrite(image, result)
         return 'ok'
